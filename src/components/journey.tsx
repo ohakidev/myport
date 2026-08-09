@@ -22,6 +22,46 @@ const languageColors: Record<string, string> = {
 const zoneEnds = [0, 31, 74, 108];
 const pathX = (z: number) => Math.sin(z * 0.075) * 3.4 + Math.sin(z * 0.021) * 1.4;
 
+const WORLD_TILE = 72;
+const WORLD_TILES = 7;
+const WORLD_SIZE = WORLD_TILE * WORLD_TILES;
+
+type WorldProp = {
+  x: number;
+  z: number;
+  kind: "pine" | "crystal" | "rock" | "ruin" | "beacon";
+  scale: number;
+  hue: number;
+  rotation: number;
+};
+
+function worldHash(x: number, z: number) {
+  let value = Math.imul(x ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(z ^ 0xc2b2ae35, 0x27d4eb2d);
+  value ^= value >>> 16;
+  return (value >>> 0) / 4294967295;
+}
+
+function makeWorldProps(tileX: number, tileZ: number): WorldProp[] {
+  const props: WorldProp[] = [];
+  for (let index = 0; index < 26; index += 1) {
+    const a = worldHash(tileX * 97 + index * 13, tileZ * 67 - index * 19);
+    const b = worldHash(tileX * 53 - index * 23, tileZ * 113 + index * 11);
+    const c = worldHash(tileX * 31 + index * 7, tileZ * 43 + index * 29);
+    const roll = worldHash(tileX * 17 + index, tileZ * 37 - index);
+    const kind: WorldProp["kind"] =
+      roll < 0.48 ? "pine" : roll < 0.68 ? "rock" : roll < 0.84 ? "crystal" : roll < 0.95 ? "ruin" : "beacon";
+    props.push({
+      x: (a - 0.5) * WORLD_TILE,
+      z: (b - 0.5) * WORLD_TILE,
+      kind,
+      scale: 0.65 + c * 1.45,
+      hue: worldHash(tileX * 71 - index, tileZ * 89 + index),
+      rotation: roll * Math.PI * 2,
+    });
+  }
+  return props;
+}
+
 function ArrowIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -97,6 +137,117 @@ function addTextSprite(text: string, color = "#ffffff", font = "700 44px sans-se
   sprite.scale.set(7, 1.75, 1);
   sprite.userData.texture = texture;
   return sprite;
+}
+
+function createWorldProp(prop: WorldProp) {
+  const group = new THREE.Group();
+  group.rotation.y = prop.rotation;
+  group.scale.setScalar(prop.scale);
+
+  if (prop.kind === "pine") {
+    const trunk = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.16, 0.22, 1.35, 7),
+      new THREE.MeshStandardMaterial({ color: 0x4b3128, roughness: 0.95 }),
+    );
+    trunk.position.y = 0.67;
+    const foliage = new THREE.MeshStandardMaterial({
+      color: new THREE.Color().setHSL(0.43 + prop.hue * 0.045, 0.46, 0.18 + prop.hue * 0.055),
+      roughness: 0.86,
+    });
+    const lower = new THREE.Mesh(new THREE.ConeGeometry(0.95, 1.8, 7), foliage);
+    lower.position.y = 1.75;
+    const upper = new THREE.Mesh(new THREE.ConeGeometry(0.68, 1.55, 7), foliage);
+    upper.position.y = 2.75;
+    group.add(trunk, lower, upper);
+  } else if (prop.kind === "crystal") {
+    const material = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color().setHSL(0.5 + prop.hue * 0.28, 0.78, 0.58),
+      emissive: new THREE.Color().setHSL(0.5 + prop.hue * 0.28, 0.75, 0.34),
+      emissiveIntensity: 0.75,
+      roughness: 0.18,
+      metalness: 0.2,
+      clearcoat: 0.8,
+    });
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.52, 0), material);
+    core.scale.y = 2.4;
+    core.position.y = 1.25;
+    const shard = new THREE.Mesh(new THREE.OctahedronGeometry(0.27, 0), material.clone());
+    shard.scale.y = 1.9;
+    shard.position.set(0.55, 0.75, 0.12);
+    shard.rotation.z = -0.35;
+    group.add(core, shard);
+  } else if (prop.kind === "rock") {
+    const material = new THREE.MeshStandardMaterial({
+      color: new THREE.Color().setHSL(0.57, 0.13, 0.2 + prop.hue * 0.08),
+      roughness: 0.94,
+    });
+    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.72, 0), material);
+    rock.scale.set(1.2, 0.72, 0.92);
+    rock.position.y = 0.48;
+    const moss = new THREE.Mesh(new THREE.IcosahedronGeometry(0.52, 1), new THREE.MeshStandardMaterial({
+      color: 0x27483a,
+      roughness: 1,
+    }));
+    moss.scale.set(1.1, 0.18, 0.75);
+    moss.position.set(-0.08, 0.9, 0);
+    group.add(rock, moss);
+  } else if (prop.kind === "ruin") {
+    const stone = new THREE.MeshStandardMaterial({ color: 0x344256, roughness: 0.83, metalness: 0.05 });
+    const columnA = new THREE.Mesh(new THREE.BoxGeometry(0.42, 2.4, 0.42), stone);
+    const columnB = new THREE.Mesh(new THREE.BoxGeometry(0.42, 1.65, 0.42), stone);
+    columnA.position.set(-0.7, 1.2, 0);
+    columnB.position.set(0.7, 0.825, 0);
+    columnB.rotation.z = 0.08;
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.35, 0.5), stone);
+    lintel.position.set(-0.08, 2.28, 0);
+    lintel.rotation.z = -0.08;
+    const rune = new THREE.Mesh(
+      new THREE.TorusGeometry(0.26, 0.035, 5, 24),
+      new THREE.MeshStandardMaterial({ color: 0x62e3ff, emissive: 0x2bbbd1, emissiveIntensity: 1.2 }),
+    );
+    rune.position.set(-0.7, 1.35, -0.23);
+    group.add(columnA, columnB, lintel, rune);
+  } else {
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.12, 3.1, 8),
+      new THREE.MeshStandardMaterial({ color: 0x24354b, roughness: 0.58, metalness: 0.38 }),
+    );
+    pole.position.y = 1.55;
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.62, 0.06, 8, 40),
+      new THREE.MeshStandardMaterial({ color: 0xb9f46d, emissive: 0x73b92f, emissiveIntensity: 1.4 }),
+    );
+    ring.position.y = 3.25;
+    const light = new THREE.PointLight(0xb9f46d, 8, 9, 1.8);
+    light.position.y = 3.25;
+    group.add(pole, ring, light);
+  }
+
+  group.userData.worldProp = prop.kind;
+  return group;
+}
+
+function createWorldTile(tileX: number, tileZ: number) {
+  const group = new THREE.Group();
+  group.name = `world-tile-${tileX}-${tileZ}`;
+  const groundHue = worldHash(tileX, tileZ);
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(WORLD_TILE, WORLD_TILE, 1, 1),
+    new THREE.MeshStandardMaterial({
+      color: new THREE.Color().setHSL(0.48 + groundHue * 0.05, 0.28, 0.075 + groundHue * 0.025),
+      roughness: 0.98,
+    }),
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  group.add(ground);
+  makeWorldProps(tileX, tileZ).forEach((prop) => {
+    const object = createWorldProp(prop);
+    object.position.set(prop.x, 0, prop.z);
+    group.add(object);
+  });
+  group.position.set(tileX * WORLD_TILE, 0, tileZ * WORLD_TILE);
+  return group;
 }
 
 function buildWalker() {
@@ -404,6 +555,48 @@ function buildPath() {
   return { group, edgeMaterial };
 }
 
+function WorldTiles({
+  scene,
+  centerX,
+  centerZ,
+  tiles,
+}: {
+  scene: THREE.Scene;
+  centerX: number;
+  centerZ: number;
+  tiles: Map<string, THREE.Group>;
+}) {
+  const baseX = Math.round(centerX / WORLD_TILE);
+  const baseZ = Math.round(centerZ / WORLD_TILE);
+  const wanted = new Set<string>();
+  const radius = Math.floor(WORLD_TILES / 2);
+  for (let x = baseX - radius; x <= baseX + radius; x += 1) {
+    for (let z = baseZ - radius; z <= baseZ + radius; z += 1) {
+      const key = `${x}:${z}`;
+      wanted.add(key);
+      if (!tiles.has(key)) {
+        const tile = createWorldTile(x, z);
+        tiles.set(key, tile);
+        scene.add(tile);
+      }
+    }
+  }
+  tiles.forEach((tile, key) => {
+    if (!wanted.has(key)) {
+      scene.remove(tile);
+      tile.traverse((object) => {
+        if (object instanceof THREE.Mesh) {
+          object.geometry.dispose();
+          const material = object.material as THREE.Material | THREE.Material[];
+          if (Array.isArray(material)) material.forEach((item) => item.dispose());
+          else material.dispose();
+        }
+      });
+      tiles.delete(key);
+    }
+  });
+}
+
 function GameWorld({
   projects,
   onActiveZone,
@@ -434,34 +627,23 @@ function GameWorld({
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.65));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.12;
+    renderer.toneMappingExposure = 1.28;
     renderer.domElement.setAttribute("aria-hidden", "true");
     mount.appendChild(renderer.domElement);
 
-    const hemi = new THREE.HemisphereLight(0x8ca3c8, 0x071018, 1.75);
+    const hemi = new THREE.HemisphereLight(0x8ca3c8, 0x071018, 2.15);
     scene.add(hemi);
     const sun = new THREE.DirectionalLight(0xe8f2ff, 1.15);
     sun.position.set(-7, 12, 5);
     scene.add(sun);
 
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(260, 260),
-      new THREE.MeshStandardMaterial({ color: 0x0a1720, roughness: 0.98 }),
-    );
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.z = -54;
-    scene.add(ground);
+    const worldTiles = new Map<string, THREE.Group>();
+    WorldTiles({ scene, centerX: 0, centerZ: 0, tiles: worldTiles });
 
     const path = buildPath();
     scene.add(path.group);
 
     const rand = mulberry(837);
-    for (let index = 0; index < 88; index += 1) {
-      const z = 8 - rand() * 126;
-      const center = pathX(-z);
-      const side = rand() > 0.5 ? 1 : -1;
-      addTree(scene as unknown as THREE.Group, center + side * (5.5 + rand() * 20), z, 0.65 + rand() * 1.2);
-    }
 
     const dustGeometry = new THREE.BufferGeometry();
     const dustPositions = new Float32Array(620 * 3);
@@ -496,6 +678,7 @@ function GameWorld({
     let zone = 0;
     let transition = 0;
     let travelZ = 0;
+    let freeZ = 6;
     let requestedTravelZ: number | null = null;
     let walkPhase = 0;
     let pointerX = 0;
@@ -606,9 +789,12 @@ function GameWorld({
         const difference = requestedTravelZ - travelZ;
         if (Math.abs(difference) < 0.35) {
           travelZ = requestedTravelZ;
+          freeZ = 6 - requestedTravelZ;
           requestedTravelZ = null;
         } else {
-          travelZ += Math.sign(difference) * Math.min(Math.abs(difference), 18 * delta);
+          const step = Math.sign(difference) * Math.min(Math.abs(difference), 18 * delta);
+          travelZ += step;
+          freeZ -= step;
           forward = Math.sign(difference);
           moving = true;
         }
@@ -616,21 +802,23 @@ function GameWorld({
 
       if (requestedTravelZ === null && Math.abs(forward) + Math.abs(sideways) > 0.05) {
         const speed = keys.has("Space") ? 10.5 : 6.4;
-        travelZ = THREE.MathUtils.clamp(travelZ + forward * speed * delta, 0, zoneEnds[3] + 8);
+        travelZ += forward * speed * delta;
+        freeZ -= forward * speed * delta;
         const center = pathX(travelZ);
-        walker.root.position.x = THREE.MathUtils.clamp(
-          walker.root.position.x + sideways * 4.2 * delta,
-          center - 4.4,
-          center + 4.4,
-        );
-        walker.root.position.z = 6 - travelZ;
+        const nearStoryRoad = travelZ >= -6 && travelZ <= zoneEnds[3] + 10;
+        walker.root.position.x += sideways * 4.2 * delta;
+        if (nearStoryRoad && Math.abs(walker.root.position.x - center) < 7) {
+          walker.root.position.x = THREE.MathUtils.clamp(walker.root.position.x, center - 5.4, center + 5.4);
+        }
+        walker.root.position.z = freeZ;
         const targetYaw = forward < -0.05 ? Math.PI : 0;
         walker.root.rotation.y += (targetYaw - walker.root.rotation.y) * 0.16;
         walkPhase += delta * (keys.has("Space") ? 14 : 9.5);
       }
 
       const pathCenter = pathX(travelZ);
-      walker.root.position.x += (pathCenter - walker.root.position.x) * (moving ? 0.012 : 0.022);
+      const closeToRoad = travelZ >= -4 && travelZ <= zoneEnds[3] + 8 && Math.abs(pathCenter - walker.root.position.x) < 7;
+      if (closeToRoad) walker.root.position.x += (pathCenter - walker.root.position.x) * (moving ? 0.008 : 0.014);
       const energy = moving ? 1 : 0.16;
       const swing = reduced ? 0 : Math.sin(walkPhase) * 0.62 * energy;
       walker.legL.rotation.x = swing;
@@ -643,8 +831,18 @@ function GameWorld({
       walker.drone.rotation.y = time * 0.9;
 
       const nextZone = travelZ < 23 ? 0 : travelZ < 59 ? 1 : travelZ < 96 ? 2 : 3;
-      if (nextZone !== zone) {
-        zone = nextZone;
+      const forcedZone =
+        requestedTravelZ !== null
+          ? requestedTravelZ < 23
+            ? 0
+            : requestedTravelZ < 59
+              ? 1
+              : requestedTravelZ < 96
+                ? 2
+                : 3
+          : nextZone;
+      if (forcedZone !== zone) {
+        zone = forcedZone;
         transition = 1;
         zoneRef.current(zone);
       }
@@ -692,6 +890,12 @@ function GameWorld({
       camera.fov += (48 + transition * 4.5 - camera.fov) * 0.12;
       camera.updateProjectionMatrix();
       dust.position.z = -travelZ * 0.08;
+      WorldTiles({
+        scene,
+        centerX: walker.root.position.x,
+        centerZ: walker.root.position.z,
+        tiles: worldTiles,
+      });
 
       renderer.render(scene, camera);
     };
