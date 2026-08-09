@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ohakidev - Systems in Motion",
+  title: "ohakidev - Curious by default",
   description:
-    "An interactive 3D portfolio generated from the public GitHub work of ohakidev.",
+    "A 3D storytelling portfolio following the public experiments of ohakidev.",
   metadataBase: new URL("https://github.com/ohakidev"),
   openGraph: {
-    title: "ohakidev - Systems in Motion",
-    description: "Backend, cloud, and tooling work told as an interactive repository universe.",
+    title: "ohakidev - Curious by default",
+    description: "Research-led products and public experiments told through an interactive 3D tree.",
     type: "website",
   },
 };

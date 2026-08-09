@@ -4,25 +4,27 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { GitHubPortfolio, Project } from "@/lib/github";
 
-const languageColors: Record<string, string> = {
-  TypeScript: "#58a6ff",
-  JavaScript: "#f1e05a",
-  Python: "#3fb950",
-  HTML: "#e34c26",
-  CSS: "#c6538c",
-  Shell: "#89e051",
-  MDX: "#fcb32c",
+const colorByLanguage: Record<string, string> = {
+  TypeScript: "#67e8f9",
+  JavaScript: "#fde047",
+  Python: "#86efac",
+  HTML: "#fb7185",
+  CSS: "#c084fc",
 };
 
-function formatDate(date: string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    year: "numeric",
-  }).format(new Date(date));
-}
+const chapters = [
+  { id: "origin", label: "Origin" },
+  { id: "practice", label: "Practice" },
+  { id: "work", label: "Work" },
+  { id: "contact", label: "Contact" },
+];
 
-function formatYear(date: string) {
-  return new Intl.DateTimeFormat("en", { year: "numeric" }).format(new Date(date));
+function GitHubIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.69c-2.78.61-3.37-1.18-3.37-1.18-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.35 1.09 2.92.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.55 9.55 0 0 1 12 7.68a9.5 9.5 0 0 1 2.5.34c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.86v1.9c0 .27.18.58.69.48A10 10 0 0 0 12 2Z" />
+    </svg>
+  );
 }
 
 function ArrowIcon() {
@@ -33,209 +35,232 @@ function ArrowIcon() {
   );
 }
 
-function GitHubIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.69c-2.78.61-3.37-1.18-3.37-1.18-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.35 1.09 2.92.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.55 9.55 0 0 1 12 7.68a9.5 9.5 0 0 1 2.5.34c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.86v1.9c0 .27.18.58.69.48A10 10 0 0 0 12 2Z" />
-    </svg>
+function createBranch(
+  start: THREE.Vector3,
+  end: THREE.Vector3,
+  radius: number,
+  material: THREE.Material,
+) {
+  const direction = end.clone().sub(start);
+  const branch = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 0.72, radius, direction.length(), 7, 1),
+    material,
   );
+  branch.position.copy(start).add(end).multiplyScalar(0.5);
+  branch.quaternion.setFromUnitVectors(
+    new THREE.Vector3(0, 1, 0),
+    direction.clone().normalize(),
+  );
+  return branch;
 }
 
-function ThreeWorld({
+function StoryWorld({
   projects,
   selected,
   onSelect,
-  exploded,
+  focusMode,
 }: {
   projects: Project[];
   selected: string | null;
   onSelect: (project: Project) => void;
-  exploded: boolean;
+  focusMode: boolean;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
-  const onSelectRef = useRef(onSelect);
-  const explodedRef = useRef(exploded);
   const selectedRef = useRef(selected);
+  const selectRef = useRef(onSelect);
+  const focusRef = useRef(focusMode);
 
-  useEffect(() => {
-    onSelectRef.current = onSelect;
-  }, [onSelect]);
-  useEffect(() => {
-    explodedRef.current = exploded;
-  }, [exploded]);
   useEffect(() => {
     selectedRef.current = selected;
   }, [selected]);
+  useEffect(() => {
+    selectRef.current = onSelect;
+  }, [onSelect]);
+  useEffect(() => {
+    focusRef.current = focusMode;
+  }, [focusMode]);
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
 
-    const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x05070f, 0.055);
-    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-    camera.position.set(0, 1.2, 12);
-
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true,
-      powerPreference: "high-performance",
-    });
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+    scene.fog = new THREE.FogExp2(0x070811, 0.04);
+    const camera = new THREE.PerspectiveCamera(43, 1, 0.1, 100);
+    camera.position.set(0, 1.7, 12.5);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.7));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 1.15;
     renderer.domElement.setAttribute("aria-hidden", "true");
-    renderer.domElement.style.touchAction = "pan-y";
     mount.appendChild(renderer.domElement);
 
-    scene.add(new THREE.HemisphereLight(0x9cc7ff, 0x110d18, 1.9));
-    const key = new THREE.PointLight(0x58a6ff, 45, 30);
-    key.position.set(4, 5, 6);
+    scene.add(new THREE.HemisphereLight(0xa5b4fc, 0x1c1026, 1.8));
+    const key = new THREE.PointLight(0x67e8f9, 52, 34);
+    key.position.set(4, 6, 6);
     scene.add(key);
-    const rim = new THREE.PointLight(0xff7a59, 32, 24);
-    rim.position.set(-5, -1, 3);
-    scene.add(rim);
+    const warmth = new THREE.PointLight(0xfb7185, 38, 28);
+    warmth.position.set(-5, 1, 4);
+    scene.add(warmth);
 
-    const root = new THREE.Group();
-    root.name = "repository-universe";
-    root.userData.sculptRuntime = {
+    const world = new THREE.Group();
+    world.name = "ohaki-research-tree";
+    world.userData.sculptRuntime = {
+      source: "img2threejs procedural workflow",
       clickable: true,
       explodable: true,
-      source: "GitHub public repositories",
+      animationReady: true,
     };
-    scene.add(root);
+    scene.add(world);
 
-    const coreMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0x141b2d,
-      emissive: 0x10264a,
-      emissiveIntensity: 1.4,
-      metalness: 0.7,
-      roughness: 0.24,
-      clearcoat: 0.9,
+    const branchMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x171b2c,
+      roughness: 0.42,
+      metalness: 0.62,
+      clearcoat: 0.8,
+      emissive: 0x101f32,
+      emissiveIntensity: 0.32,
     });
-    const core = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(1.18, 2),
-      coreMaterial,
-    );
-    core.name = "backend-core";
-    root.add(core);
+    const pathMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x20263d,
+      roughness: 0.3,
+      metalness: 0.7,
+      clearcoat: 1,
+    });
 
-    const wire = new THREE.LineSegments(
-      new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(1.42, 2)),
-      new THREE.LineBasicMaterial({
-        color: 0x58a6ff,
-        transparent: true,
-        opacity: 0.35,
-      }),
-    );
-    wire.name = "architecture-boundary";
-    root.add(wire);
-
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(2.05, 0.025, 8, 100),
-      new THREE.MeshBasicMaterial({
-        color: 0x7d8ca4,
-        transparent: true,
-        opacity: 0.26,
-      }),
-    );
-    ring.rotation.x = Math.PI * 0.43;
-    ring.rotation.y = Math.PI * 0.1;
-    root.add(ring);
+    const trunkPoints = [
+      new THREE.Vector3(0, -4.8, 0),
+      new THREE.Vector3(-0.15, -2.2, 0.1),
+      new THREE.Vector3(0.2, 0.3, -0.1),
+      new THREE.Vector3(-0.05, 3.1, 0),
+      new THREE.Vector3(0.15, 5, 0),
+    ];
+    for (let index = 0; index < trunkPoints.length - 1; index += 1) {
+      world.add(
+        createBranch(
+          trunkPoints[index],
+          trunkPoints[index + 1],
+          0.24 - index * 0.035,
+          branchMaterial,
+        ),
+      );
+    }
 
     const nodes: THREE.Mesh[] = [];
-    const links: THREE.Line[] = [];
+    const tendrils: THREE.Mesh[] = [];
     projects.forEach((project, index) => {
-      const angle = index * 2.399;
-      const radius = 3.1 + (index % 3) * 0.55;
-      const origin = new THREE.Vector3(
-        Math.cos(angle) * radius,
-        (index - (projects.length - 1) / 2) * 0.52,
-        Math.sin(angle) * radius * 0.72,
-      );
+      const level = -3.4 + index * (7.4 / Math.max(projects.length - 1, 1));
+      const direction = index % 2 === 0 ? 1 : -1;
+      const depth = (index % 3 - 1) * 0.7;
+      const start = new THREE.Vector3(0, level - 0.4, 0);
+      const joint = new THREE.Vector3(direction * 1.4, level + 0.15, depth * 0.5);
+      const end = new THREE.Vector3(direction * (3 + (index % 2) * 0.55), level + 0.65, depth);
+      world.add(createBranch(start, joint, 0.12, branchMaterial));
+      world.add(createBranch(joint, end, 0.075, branchMaterial));
+
       const color = new THREE.Color(
-        languageColors[project.language ?? ""] ?? "#a78bfa",
+        colorByLanguage[project.language ?? ""] ?? "#f0abfc",
       );
+      const material = new THREE.MeshPhysicalMaterial({
+        color,
+        emissive: color,
+        emissiveIntensity: 0.44,
+        roughness: 0.22,
+        metalness: 0.28,
+        clearcoat: 1,
+        transparent: true,
+        opacity: 0.94,
+      });
       const node = new THREE.Mesh(
-        index === 0
-          ? new THREE.OctahedronGeometry(0.42, 0)
-          : new THREE.DodecahedronGeometry(0.26 + Math.min(project.stars, 10) * 0.012, 0),
-        new THREE.MeshPhysicalMaterial({
-          color,
-          emissive: color,
-          emissiveIntensity: 0.28,
-          roughness: 0.28,
-          metalness: 0.42,
-          clearcoat: 0.7,
-        }),
+        index === projects.length - 1
+          ? new THREE.IcosahedronGeometry(0.55, 2)
+          : new THREE.DodecahedronGeometry(0.36, 1),
+        material,
       );
       node.name = project.name;
-      node.position.copy(origin);
-      node.userData = { project, origin, explodeWithParent: false };
-      root.add(node);
+      node.position.copy(end);
+      node.userData = { project, origin: end.clone(), direction };
+      world.add(node);
       nodes.push(node);
 
-      const geometry = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(),
-        origin,
-      ]);
-      const link = new THREE.Line(
-        geometry,
-        new THREE.LineBasicMaterial({
+      const orbit = new THREE.Mesh(
+        new THREE.TorusGeometry(0.72, 0.012, 6, 80),
+        new THREE.MeshBasicMaterial({
           color,
           transparent: true,
-          opacity: index === 0 ? 0.5 : 0.16,
+          opacity: 0.24,
         }),
       );
-      link.userData.node = node;
-      root.add(link);
-      links.push(link);
+      orbit.position.copy(end);
+      orbit.rotation.x = Math.PI * 0.62;
+      orbit.userData = { node, phase: index * 0.7 };
+      world.add(orbit);
+      tendrils.push(orbit);
     });
 
-    const starGeometry = new THREE.BufferGeometry();
-    const starPositions = new Float32Array(900);
-    let seed = 17;
+    const rootRings: THREE.Mesh[] = [];
+    for (let index = 0; index < 3; index += 1) {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(1.2 + index * 0.62, 0.015, 6, 100),
+        new THREE.MeshBasicMaterial({
+          color: index === 1 ? 0xfb7185 : 0x67e8f9,
+          transparent: true,
+          opacity: 0.14,
+        }),
+      );
+      ring.position.y = -4.65;
+      ring.rotation.x = Math.PI / 2;
+      world.add(ring);
+      rootRings.push(ring);
+    }
+
+    const dustGeometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(960);
+    let seed = 29;
     const random = () => {
       seed = (seed * 16807) % 2147483647;
       return seed / 2147483647;
     };
-    for (let i = 0; i < starPositions.length; i += 3) {
-      starPositions[i] = (random() - 0.5) * 30;
-      starPositions[i + 1] = (random() - 0.5) * 22;
-      starPositions[i + 2] = (random() - 0.5) * 22;
+    for (let i = 0; i < positions.length; i += 3) {
+      positions[i] = (random() - 0.5) * 24;
+      positions[i + 1] = (random() - 0.5) * 18;
+      positions[i + 2] = (random() - 0.5) * 18;
     }
-    starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
-    const stars = new THREE.Points(
-      starGeometry,
+    dustGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    const dust = new THREE.Points(
+      dustGeometry,
       new THREE.PointsMaterial({
-        color: 0x6d7f99,
-        size: 0.018,
+        color: 0x8da2c8,
+        size: 0.025,
         transparent: true,
-        opacity: 0.72,
+        opacity: 0.55,
       }),
     );
-    scene.add(stars);
+    scene.add(dust);
 
     const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2(3, 3);
-    const targetPointer = new THREE.Vector2();
+    const pointer = new THREE.Vector2(4, 4);
+    const pointerTarget = new THREE.Vector2();
     let hovered: THREE.Mesh | null = null;
     let frame = 0;
 
-    const updatePointer = (event: PointerEvent) => {
+    const pointerMove = (event: PointerEvent) => {
       const rect = renderer.domElement.getBoundingClientRect();
       pointer.set(
         ((event.clientX - rect.left) / rect.width) * 2 - 1,
         -((event.clientY - rect.top) / rect.height) * 2 + 1,
       );
-      targetPointer.copy(pointer);
+      pointerTarget.copy(pointer);
     };
     const click = () => {
-      if (hovered) onSelectRef.current(hovered.userData.project as Project);
+      if (hovered) {
+        selectRef.current(hovered.userData.project as Project);
+        document.getElementById("work")?.scrollIntoView({ behavior: "smooth" });
+      }
     };
-    renderer.domElement.addEventListener("pointermove", updatePointer);
+    renderer.domElement.addEventListener("pointermove", pointerMove);
     renderer.domElement.addEventListener("click", click);
 
     const resize = () => {
@@ -245,391 +270,344 @@ function ThreeWorld({
       camera.aspect = width / Math.max(height, 1);
       camera.updateProjectionMatrix();
     };
-    const observer = new ResizeObserver(resize);
-    observer.observe(mount);
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(mount);
     resize();
 
     const clock = new THREE.Clock();
     const animate = () => {
       frame = requestAnimationFrame(animate);
       const time = clock.getElapsedTime();
-      const pageHeight = Math.max(document.documentElement.scrollHeight - innerHeight, 1);
-      const scroll = scrollY / pageHeight;
+      const maxScroll = Math.max(document.documentElement.scrollHeight - innerHeight, 1);
+      const progress = scrollY / maxScroll;
 
       raycaster.setFromCamera(pointer, camera);
       const hit = raycaster.intersectObjects(nodes, false)[0]?.object as
         | THREE.Mesh
         | undefined;
-      if (hovered !== hit) {
-        hovered = hit ?? null;
-        renderer.domElement.style.cursor = hovered ? "pointer" : "grab";
-      }
+      hovered = hit ?? null;
+      renderer.domElement.style.cursor = hovered ? "pointer" : "grab";
 
-      const explode = explodedRef.current ? 1.62 : 1;
       nodes.forEach((node, index) => {
-        const origin = node.userData.origin as THREE.Vector3;
-        const desired = origin.clone().multiplyScalar(explode);
-        node.position.lerp(desired, reduceMotion ? 1 : 0.055);
-        const active = selectedRef.current === node.name;
-        const over = hovered === node;
-        const scale = active ? 1.65 : over ? 1.32 : 1;
-        node.scale.lerp(new THREE.Vector3(scale, scale, scale), 0.13);
-        if (!reduceMotion) {
-          node.rotation.x = time * (0.16 + index * 0.005);
-          node.rotation.y = time * (0.22 + index * 0.007);
+        const active = node.name === selectedRef.current;
+        const over = node === hovered;
+        const target = active ? 1.5 : over ? 1.24 : 1;
+        node.scale.lerp(new THREE.Vector3(target, target, target), 0.12);
+        if (!reduced) {
+          node.rotation.y = time * (0.2 + index * 0.018);
+          node.position.y =
+            (node.userData.origin as THREE.Vector3).y + Math.sin(time * 1.1 + index) * 0.08;
         }
-        const points = [
-          new THREE.Vector3(),
-          node.position.clone(),
-        ];
-        links[index].geometry.setFromPoints(points);
+      });
+      tendrils.forEach((ring, index) => {
+        if (!reduced) ring.rotation.z = time * (0.08 + index * 0.008);
+      });
+      rootRings.forEach((ring, index) => {
+        const pulse = 1 + Math.sin(time * 0.7 + index) * 0.08;
+        ring.scale.setScalar(pulse);
       });
 
-      if (!reduceMotion) {
-        core.rotation.y = time * 0.12;
-        core.rotation.x = Math.sin(time * 0.22) * 0.15;
-        wire.rotation.y = -time * 0.09;
-        ring.rotation.z = time * 0.055;
-        root.rotation.y += (scroll * Math.PI * 1.45 - root.rotation.y) * 0.025;
-        root.position.y += ((0.5 - scroll) * 1.3 - root.position.y) * 0.025;
-        camera.position.x += (targetPointer.x * 0.72 - camera.position.x) * 0.02;
-        camera.position.y +=
-          (1.2 + targetPointer.y * 0.35 - camera.position.y) * 0.02;
-      }
-      camera.lookAt(0, root.position.y * 0.3, 0);
+      const focus = focusRef.current ? 1 : 0;
+      world.rotation.y +=
+        (progress * Math.PI * 1.2 + pointerTarget.x * 0.13 - world.rotation.y) * 0.025;
+      world.position.y += ((0.5 - progress) * 5.2 - world.position.y) * 0.025;
+      camera.position.z += (12.5 - focus * 2.4 - camera.position.z) * 0.035;
+      camera.position.x += (pointerTarget.x * 0.7 - camera.position.x) * 0.022;
+      camera.position.y += (1.7 + pointerTarget.y * 0.4 - camera.position.y) * 0.022;
+      camera.lookAt(0, world.position.y * 0.18, 0);
       renderer.render(scene, camera);
     };
     animate();
 
     return () => {
       cancelAnimationFrame(frame);
-      observer.disconnect();
-      renderer.domElement.removeEventListener("pointermove", updatePointer);
+      resizeObserver.disconnect();
+      renderer.domElement.removeEventListener("pointermove", pointerMove);
       renderer.domElement.removeEventListener("click", click);
-      root.traverse((object) => {
-        if (object instanceof THREE.Mesh || object instanceof THREE.Line) {
+      world.traverse((object) => {
+        if (object instanceof THREE.Mesh) {
           object.geometry.dispose();
-          const material = object.material;
-          if (Array.isArray(material)) material.forEach((item) => item.dispose());
-          else material.dispose();
+          if (Array.isArray(object.material)) object.material.forEach((item) => item.dispose());
+          else object.material.dispose();
         }
       });
-      starGeometry.dispose();
-      (stars.material as THREE.Material).dispose();
+      dustGeometry.dispose();
+      (dust.material as THREE.Material).dispose();
       renderer.dispose();
       renderer.domElement.remove();
     };
   }, [projects]);
 
-  return <div className="three-world" ref={mountRef} />;
+  return <div className="story-world" ref={mountRef} />;
 }
 
-export function RepositoryUniverse({
-  portfolio,
+function ProjectPanel({
+  project,
+  close,
 }: {
-  portfolio: GitHubPortfolio;
+  project: Project;
+  close: () => void;
 }) {
-  const [selected, setSelected] = useState<Project | null>(
-    portfolio.projects[0] ?? null,
+  return (
+    <aside className="project-panel" aria-live="polite">
+      <button className="panel-close" type="button" onClick={close} aria-label="Close project detail">
+        ×
+      </button>
+      <p className="micro-label">ACTIVE BRANCH</p>
+      <h3>{project.name}</h3>
+      <p>{project.description}</p>
+      <div className="project-meta">
+        <span>{project.language ?? "Mixed stack"}</span>
+        <span>★ {project.stars}</span>
+        <span>{new Date(project.pushedAt).getFullYear()}</span>
+      </div>
+      {project.topics.length > 0 && (
+        <div className="topic-row">
+          {project.topics.slice(0, 5).map((topic) => (
+            <span key={topic}>{topic}</span>
+          ))}
+        </div>
+      )}
+      <div className="panel-actions">
+        <a href={project.url} target="_blank" rel="noreferrer">
+          View source <ArrowIcon />
+        </a>
+        {project.homepage && (
+          <a href={project.homepage} target="_blank" rel="noreferrer">
+            Open live project
+          </a>
+        )}
+      </div>
+    </aside>
   );
-  const [exploded, setExploded] = useState(false);
-  const featured = useMemo(() => portfolio.projects.slice(0, 6), [portfolio.projects]);
-  const timeline = useMemo(
+}
+
+export function RepositoryUniverse({ portfolio }: { portfolio: GitHubPortfolio }) {
+  const [selected, setSelected] = useState<Project | null>(portfolio.projects[0] ?? null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [activeChapter, setActiveChapter] = useState("origin");
+  const chronological = useMemo(
     () => [...portfolio.projects].sort((a, b) => Date.parse(a.pushedAt) - Date.parse(b.pushedAt)),
     [portfolio.projects],
   );
   const languages = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          portfolio.projects
-            .map((project) => project.language)
-            .filter((language): language is string => Boolean(language)),
-        ),
-      ),
+    () => Array.from(new Set(portfolio.projects.map((project) => project.language).filter(Boolean))),
     [portfolio.projects],
   );
 
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const current = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (current) setActiveChapter(current.target.id);
+      },
+      { threshold: [0.25, 0.55] },
+    );
+    chapters.forEach(({ id }) => {
+      const element = document.getElementById(id);
+      if (element) observer.observe(element);
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  const inspect = (project: Project) => {
+    setSelected(project);
+    setPanelOpen(true);
+  };
+
   return (
     <main>
-      <a className="skip-link" href="#work">
-        Skip to selected work
-      </a>
+      <a href="#origin" className="skip-link">Skip to story</a>
+      <StoryWorld
+        projects={chronological}
+        selected={selected?.name ?? null}
+        onSelect={inspect}
+        focusMode={focusMode}
+      />
 
-      <header className="topbar">
-        <a className="wordmark" href="#top" aria-label="ohakidev, back to top">
-          <span className="wordmark-mark" aria-hidden="true">
-            L/
-          </span>
-            ohakidev
+      <header className="site-nav">
+        <a href="#origin" className="brand" aria-label="ohakidev home">
+          <span>O</span>
+          <strong>ohaki</strong>
         </a>
-        <div className="topbar-meta">
-          <span className={portfolio.isLive ? "live-dot" : "live-dot cached"} />
-          {portfolio.isLive ? "GitHub data live" : "GitHub data cached"}
-        </div>
+        <nav aria-label="Story chapters">
+          {chapters.map((chapter, index) => (
+            <a
+              key={chapter.id}
+              href={`#${chapter.id}`}
+              className={activeChapter === chapter.id ? "active" : ""}
+            >
+              <span>0{index + 1}</span>
+              {chapter.label}
+            </a>
+          ))}
+        </nav>
         <a
-          className="icon-link"
+          className="github-link"
           href={portfolio.profileUrl}
           target="_blank"
           rel="noreferrer"
-          aria-label="Open GitHub profile"
+          aria-label="GitHub profile"
         >
           <GitHubIcon />
         </a>
       </header>
 
-      <ThreeWorld
-        projects={portfolio.projects}
-        selected={selected?.name ?? null}
-        onSelect={setSelected}
-        exploded={exploded}
-      />
+      <div className="chapter-progress" aria-hidden="true">
+        {chapters.map((chapter) => (
+          <span key={chapter.id} className={activeChapter === chapter.id ? "active" : ""} />
+        ))}
+      </div>
 
       <button
-        className="explode-control"
+        className="focus-control"
         type="button"
-        aria-pressed={exploded}
-        onClick={() => setExploded((value) => !value)}
+        aria-pressed={focusMode}
+        onClick={() => setFocusMode((value) => !value)}
       >
-        <span aria-hidden="true">{exploded ? "×" : "+"}</span>
-        {exploded ? "Reassemble universe" : "Explode repository map"}
+        <span aria-hidden="true">{focusMode ? "−" : "+"}</span>
+        {focusMode ? "Step back" : "Enter 3D"}
       </button>
 
-      <div className="story">
-        <section className="chapter hero" id="top" aria-labelledby="hero-title">
-          <div className="chapter-index">00 / SYSTEMS IN MOTION</div>
-          <div className="hero-copy">
-          <p className="eyebrow">{portfolio.bio} · Research · Experiments · Tools</p>
-            <h1 id="hero-title">
-              I turn complex
-              <span> systems into motion.</span>
-            </h1>
-            <p className="lede">
-              The public work of <strong>@{portfolio.login}</strong>, mapped as an
-              interactive universe. Scroll to travel through the systems; select a
-              node to inspect its source.
-            </p>
-            <div className="hero-actions">
-              <a className="primary-action" href="#work">
-                Enter the repository field <ArrowIcon />
-              </a>
-              <a
-                className="text-action"
-                href={portfolio.profileUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                View GitHub
-              </a>
+      {panelOpen && selected && <ProjectPanel project={selected} close={() => setPanelOpen(false)} />}
+
+      <div className="story-shell">
+        <section className="story-chapter hero-chapter" id="origin" aria-labelledby="origin-title">
+          <div className="chapter-tag"><span>01</span> ORIGIN / RESEARCHER</div>
+          <div className="hero-grid">
+            <div className="hero-copy">
+              <p className="micro-label">research everything that can make life better</p>
+              <h1 id="origin-title">
+                Curious by default.
+                <em>Useful by design.</em>
+              </h1>
+              <p className="hero-lede">
+                I am <strong>{portfolio.name}</strong> — an independent builder exploring
+                products, automation, communities, and emerging technology through code.
+              </p>
+              <div className="hero-actions">
+                <a href="#practice" className="primary-button">
+                  Follow the story <ArrowIcon />
+                </a>
+                <a href={portfolio.profileUrl} target="_blank" rel="noreferrer" className="quiet-link">
+                  @{portfolio.login}
+                </a>
+              </div>
+            </div>
+            <div className="hero-note">
+              <span>THE LIVING TREE</span>
+              <p>
+                Every glowing branch is a public project. Move your pointer through the scene,
+                rotate the tree by scrolling, or click a node to inspect its source.
+              </p>
+              <div className="hero-stats">
+                <strong>{portfolio.publicRepos}</strong><span>public experiments</span>
+                <strong>{portfolio.followers}</strong><span>people following</span>
+                <strong>{languages.length}</strong><span>observed languages</span>
+              </div>
             </div>
           </div>
-          <div className="hero-stats" aria-label="GitHub profile statistics">
-            <div>
-              <strong>{portfolio.publicRepos}</strong>
-              <span>public repos</span>
-            </div>
-            <div>
-              <strong>{portfolio.followers}</strong>
-              <span>followers</span>
-            </div>
-            <div>
-              <strong>{languages.length}</strong>
-              <span>active languages</span>
-            </div>
-          </div>
-          <p className="scroll-note">
-            <span aria-hidden="true" /> Scroll to traverse
-          </p>
+          <div className="scroll-cue"><i /> scroll to grow the tree</div>
         </section>
 
-        <section className="chapter manifesto" id="approach" aria-labelledby="approach-title">
-          <div className="chapter-index">01 / ARCHITECTURE</div>
-          <div className="manifesto-copy">
-            <p className="eyebrow">A research-first point of view</p>
-            <h2 id="approach-title">
-              The interface is only the visible edge of the system.
-            </h2>
-            <p>
-              The repository graph reveals a recurring practice: typed boundaries,
-              distributed workloads, authentication, databases, APIs, and developer
-              tools. The 3D core represents that invisible infrastructure -—the work
-              that keeps products reliable after the first click.
-            </p>
+        <section className="story-chapter practice-chapter" id="practice" aria-labelledby="practice-title">
+          <div className="chapter-tag"><span>02</span> PRACTICE / HOW I BUILD</div>
+          <div className="section-heading">
+            <p className="micro-label">No fixed title. A repeatable instinct.</p>
+            <h2 id="practice-title">Research becomes a prototype. A prototype becomes proof.</h2>
           </div>
-          <div className="signal-list" aria-label="Technical focus">
-            {["Backend systems", "Cloud workloads", "Developer tooling", "Full-stack delivery"].map(
-              (item, index) => (
-                <div key={item}>
-                  <span>0{index + 1}</span>
-                  {item}
-                </div>
-              ),
-            )}
-          </div>
-        </section>
-
-        <section className="chapter timeline" id="timeline" aria-labelledby="timeline-title">
-          <div className="chapter-index">02 / THE TIMELINE</div>
-          <div className="timeline-heading">
-            <div>
-              <p className="eyebrow">A chronology of experiments</p>
-              <h2 id="timeline-title">Follow the work as it evolves.</h2>
-            </div>
-            <p>
-              Scroll is the time axis. Each node is a public commit trail: from early
-              web experiments to products, tools, and live experiments.
-            </p>
-          </div>
-          <div className="timeline-rail" role="list" aria-label="Repository timeline">
-            <div className="timeline-line" aria-hidden="true" />
-            {timeline.map((project, index) => (
-              <button
-                key={project.name}
-                type="button"
-                role="listitem"
-                className={selected?.name === project.name ? "timeline-event active" : "timeline-event"}
-                onClick={() => {
-                  setSelected(project);
-                  document.getElementById("work")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-              >
-                <span className="timeline-dot" aria-hidden="true" />
-                <span className="timeline-year">{formatYear(project.pushedAt)}</span>
-                <span className="timeline-card">
-                  <strong>{project.name}</strong>
-                  <small>{project.description}</small>
-                  <em>{project.language ?? "Mixed stack"} · {formatDate(project.pushedAt)}</em>
-                </span>
-                <span className="timeline-step">0{index + 1}</span>
-              </button>
+          <div className="practice-grid">
+            {[
+              ["Observe", "Start with a real friction point, not a fashionable stack."],
+              ["Connect", "Map data, people, APIs, and constraints into one working system."],
+              ["Prototype", "Ship the smallest interactive proof that can teach something."],
+              ["Refine", "Keep what improves life. Remove what only adds noise."],
+            ].map(([title, copy], index) => (
+              <article key={title}>
+                <span>0{index + 1}</span>
+                <h3>{title}</h3>
+                <p>{copy}</p>
+              </article>
             ))}
           </div>
+          <div className="stack-band">
+            <p>Observed in the public work</p>
+            <div>
+              {languages.map((language) => (
+                <span key={language ?? "Mixed"}>
+                  <i style={{ background: colorByLanguage[language ?? ""] ?? "#f0abfc" }} />
+                  {language}
+                </span>
+              ))}
+              <span><i className="neutral" /> Next.js</span>
+              <span><i className="neutral" /> shadcn/ui</span>
+              <span><i className="neutral" /> Vercel</span>
+            </div>
+          </div>
         </section>
 
-        <section className="chapter work" id="work" aria-labelledby="work-title">
-          <div className="chapter-index">03 / SELECTED REPOSITORIES</div>
-          <div className="work-heading">
+        <section className="story-chapter work-chapter" id="work" aria-labelledby="work-title">
+          <div className="chapter-tag"><span>03</span> WORK / PUBLIC TRAIL</div>
+          <div className="section-heading work-heading">
             <div>
-              <p className="eyebrow">Pulled from GitHub</p>
-              <h2 id="work-title">Systems worth opening.</h2>
+              <p className="micro-label">A timeline drawn from GitHub</p>
+              <h2 id="work-title">The experiments changed. The curiosity did not.</h2>
             </div>
             <p>
-              These are public repositories, ranked by community signal and recency.
-              Hover the 3D field or use the accessible list below.
+              This timeline does not invent a résumé. It follows the public repository trail and
+              lets each project speak through its code, live deployment, and last active year.
             </p>
           </div>
-
-          <div className="project-layout">
-            <div className="project-list" role="list">
-              {featured.map((project, index) => (
-                <button
-                  key={project.name}
-                  type="button"
-                  className={selected?.name === project.name ? "project-row active" : "project-row"}
-                  onClick={() => setSelected(project)}
-                  role="listitem"
-                >
-                  <span className="project-number">{String(index + 1).padStart(2, "0")}</span>
-                  <span className="project-name">{project.name}</span>
-                  <span className="project-language">
-                    <i
-                      style={{
-                        background:
-                          languageColors[project.language ?? ""] ?? "#a78bfa",
-                      }}
-                    />
-                    {project.language ?? "Mixed"}
-                  </span>
-                  <span className="project-arrow" aria-hidden="true">
-                    ↗
+          <div className="work-timeline" role="list">
+            <div className="timeline-spine" aria-hidden="true" />
+            {chronological.map((project, index) => (
+              <article
+                key={project.name}
+                role="listitem"
+                className={selected?.name === project.name ? "work-entry active" : "work-entry"}
+              >
+                <button type="button" onClick={() => inspect(project)}>
+                  <span className="entry-year">{new Date(project.pushedAt).getFullYear()}</span>
+                  <i className="entry-node" aria-hidden="true" />
+                  <span className="entry-card">
+                    <span className="entry-kicker">CHAPTER {String(index + 1).padStart(2, "0")}</span>
+                    <strong>{project.name}</strong>
+                    <small>{project.description}</small>
+                    <span className="entry-footer">
+                      <b>{project.language ?? "Mixed stack"}</b>
+                      <em>{project.homepage ? "live + source" : "source available"}</em>
+                    </span>
                   </span>
                 </button>
-              ))}
-            </div>
-
-            <aside className="project-inspector" aria-live="polite">
-              {selected ? (
-                <>
-                  <div className="inspector-topline">
-                    <span>ACTIVE NODE</span>
-                    <span>{formatDate(selected.pushedAt)}</span>
-                  </div>
-                  <h3>{selected.name}</h3>
-                  <p>{selected.description}</p>
-                  <div className="repo-metrics">
-                    <span>★ {selected.stars}</span>
-                    <span>⑂ {selected.forks}</span>
-                    <span>{selected.language ?? "Mixed"}</span>
-                  </div>
-                  {selected.topics.length > 0 && (
-                    <div className="topic-list">
-                      {selected.topics.slice(0, 5).map((topic) => (
-                        <span key={topic}>{topic}</span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="inspector-actions">
-                    <a href={selected.url} target="_blank" rel="noreferrer">
-                      Open source <ArrowIcon />
-                    </a>
-                    {selected.homepage && (
-                      <a href={selected.homepage} target="_blank" rel="noreferrer">
-                        Live site
-                      </a>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <p>Select a repository.</p>
-              )}
-            </aside>
-          </div>
-        </section>
-
-        <section className="chapter stack" id="stack" aria-labelledby="stack-title">
-          <div className="chapter-index">04 / TOOLBOX</div>
-          <div className="stack-copy">
-            <p className="eyebrow">Observed repository languages</p>
-            <h2 id="stack-title">A polyglot toolkit, arranged around the problem.</h2>
-          </div>
-          <div className="language-orbit">
-            {languages.map((language, index) => (
-              <div key={language} style={{ "--i": index } as React.CSSProperties}>
-                <span
-                  style={{ background: languageColors[language] ?? "#a78bfa" }}
-                />
-                {language}
-              </div>
+              </article>
             ))}
           </div>
-          <blockquote>
-            “Code is the artifact. Architecture is the story it leaves behind.”
-          </blockquote>
         </section>
 
-        <section className="chapter contact" id="contact" aria-labelledby="contact-title">
-          <div className="chapter-index">05 / OPEN CHANNEL</div>
-          <div className="contact-copy">
-            <p className="eyebrow">Available for thoughtful technical work</p>
-            <h2 id="contact-title">
-              Have a system that needs a clearer shape?
-            </h2>
-            <p>
-              Start with the code. Explore the repositories, inspect the decisions,
-              then open a conversation through the public profile.
-            </p>
-            <a
-              className="primary-action"
-              href={portfolio.profileUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Connect on GitHub <ArrowIcon />
-            </a>
+        <section className="story-chapter contact-chapter" id="contact" aria-labelledby="contact-title">
+          <div className="chapter-tag"><span>04</span> CONTACT / NEXT BRANCH</div>
+          <div className="contact-grid">
+            <div>
+              <p className="micro-label">The next useful experiment can start here.</p>
+              <h2 id="contact-title">What should we make less difficult?</h2>
+            </div>
+            <div className="contact-card">
+              <p>
+                Explore the source, try the live projects, and open a conversation through
+                GitHub. I am interested in research-led products, thoughtful automation, and
+                tools that create tangible value.
+              </p>
+              <a href={portfolio.profileUrl} target="_blank" rel="noreferrer" className="primary-button">
+                Start on GitHub <ArrowIcon />
+              </a>
+            </div>
           </div>
           <footer>
-            <span>(c) {new Date().getFullYear()} {portfolio.login}</span>
-            <span>No portrait used - Public GitHub data only</span>
+            <span>© {new Date().getFullYear()} {portfolio.login}</span>
+            <span>Procedural Three.js · public GitHub data · no portrait</span>
           </footer>
         </section>
       </div>

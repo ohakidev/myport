@@ -5,9 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "postbuild": "node scripts/copy-static.mjs",
     "start": "next start",
-    "data": "node scripts/fetch-github-data.mjs"
+    "start:prod": "next start"
   },
   "dependencies": {
     "next": "^15.3.0",
