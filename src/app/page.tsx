@@ -1,7 +1,7 @@
 import { getGitHubPortfolio } from "@/lib/github";
-import { RepositoryUniverse } from "@/components/repository-universe";
+import { Journey } from "@/components/journey";
 
 export default async function Home() {
   const portfolio = await getGitHubPortfolio();
-  return <RepositoryUniverse portfolio={portfolio} />;
+  return <Journey portfolio={portfolio} />;
 }

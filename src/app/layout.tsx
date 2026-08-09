@@ -4,11 +4,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "ohakidev - Curious by default",
   description:
-    "A 3D storytelling portfolio following the public experiments of ohakidev.",
+    "Walk the journey of ohakidev - a scroll-driven 3D story through public GitHub experiments.",
   metadataBase: new URL("https://github.com/ohakidev"),
   openGraph: {
     title: "ohakidev - Curious by default",
-    description: "Research-led products and public experiments told through an interactive 3D tree.",
+    description: "Research-led products and public experiments told as a walkable 3D journey.",
     type: "website",
   },
 };
