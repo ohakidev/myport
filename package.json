@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "node scripts/copy-static.mjs",
     "start": "next start",
     "data": "node scripts/fetch-github-data.mjs"
   },
