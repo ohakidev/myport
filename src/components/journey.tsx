@@ -1,45 +1,26 @@
-// 3D storytelling journey: a procedural traveler walks through four
-// locations as the visitor scrolls. Locations assemble ahead of the
-// traveler, palette/lighting crossfade at chapter borders, and every
-// milestone on the trail is a real public repository of ohakidev.
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { GitHubPortfolio, Project } from "@/lib/github";
 
-const colorByLanguage: Record<string, string> = {
-  TypeScript: "#67e8f9",
-  JavaScript: "#fde047",
-  Python: "#86efac",
-  HTML: "#fb7185",
-  CSS: "#c084fc",
+const chapters = [
+  { id: "origin", label: "Start", color: "#62e3ff" },
+  { id: "practice", label: "Lab", color: "#f3d768" },
+  { id: "work", label: "Projects", color: "#ff806f" },
+  { id: "contact", label: "Signal", color: "#b9f46d" },
+];
+
+const languageColors: Record<string, string> = {
+  TypeScript: "#62e3ff",
+  JavaScript: "#f3d768",
+  Python: "#83f1a5",
+  HTML: "#ff806f",
+  CSS: "#cb8eff",
 };
 
-const chapters = [
-  { id: "origin", label: "Basecamp", hud: "BASECAMP — WHERE THE SPARK STARTS" },
-  { id: "practice", label: "Workshop", hud: "WORKSHOP — HOW IDEAS BECOME PROOFS" },
-  { id: "work", label: "Trail", hud: "THE TRAIL — PUBLIC EXPERIMENTS" },
-  { id: "contact", label: "Summit", hud: "SUMMIT — THE NEXT DEPARTURE" },
-];
-
-const ZONE_SPAN = 30;
-const PATH_LENGTH = ZONE_SPAN * (chapters.length - 1);
-
-const zonePalettes = [
-  { fog: "#0b0c18", hemi: "#8b9dd6", accent: "#fbbf24", edge: "#67e8f9" },
-  { fog: "#081018", hemi: "#7fc7dd", accent: "#22d3ee", edge: "#67e8f9" },
-  { fog: "#120a16", hemi: "#c39ad1", accent: "#fb7185", edge: "#fb7185" },
-  { fog: "#081014", hemi: "#9fd6a8", accent: "#bef264", edge: "#bef264" },
-];
-
-function GitHubIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.69c-2.78.61-3.37-1.18-3.37-1.18-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.35 1.09 2.92.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.55 9.55 0 0 1 12 7.68a9.5 9.5 0 0 1 2.5.34c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.86v1.9c0 .27.18.58.69.48A10 10 0 0 0 12 2Z" />
-    </svg>
-  );
-}
+const zoneEnds = [0, 31, 74, 108];
+const pathX = (z: number) => Math.sin(z * 0.075) * 3.4 + Math.sin(z * 0.021) * 1.4;
 
 function ArrowIcon() {
   return (
@@ -49,434 +30,543 @@ function ArrowIcon() {
   );
 }
 
-const easeOutBack = (value: number) => {
-  const c1 = 1.2;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(value - 1, 3) + c1 * Math.pow(value - 1, 2);
-};
-
-const pathX = (progress: number) => Math.sin(progress * Math.PI * 2) * 1.3;
-
-function buildTraveler() {
-  const group = new THREE.Group();
-  const suit = new THREE.MeshStandardMaterial({
-    color: 0x232c44,
-    roughness: 0.48,
-    metalness: 0.3,
-  });
-  const dark = new THREE.MeshStandardMaterial({
-    color: 0x12172a,
-    roughness: 0.6,
-    metalness: 0.25,
-  });
-
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.42, 6, 14), suit);
-  torso.position.y = 0.98;
-  group.add(torso);
-
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 18, 16), dark);
-  head.position.y = 1.62;
-  group.add(head);
-  const visor = new THREE.Mesh(
-    new THREE.SphereGeometry(0.245, 18, 12, Math.PI * 1.15, Math.PI * 0.7, Math.PI * 0.3, Math.PI * 0.32),
-    new THREE.MeshStandardMaterial({
-      color: 0x67e8f9,
-      emissive: 0x67e8f9,
-      emissiveIntensity: 1.6,
-      roughness: 0.2,
-    }),
+function GitHubIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.69c-2.78.61-3.37-1.18-3.37-1.18-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.35 1.09 2.92.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.55 9.55 0 0 1 12 7.68a9.5 9.5 0 0 1 2.5.34c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.86v1.9c0 .27.18.58.69.48A10 10 0 0 0 12 2Z" />
+    </svg>
   );
-  visor.position.y = 1.62;
-  group.add(visor);
+}
 
-  const pack = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.52, 0.24), dark);
-  pack.position.set(0, 1.06, 0.28);
-  group.add(pack);
-  const beacon = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.02, 0.02, 0.34, 6),
-    new THREE.MeshStandardMaterial({ color: 0xfb7185, emissive: 0xfb7185, emissiveIntensity: 1.4 }),
+function mulberry(seed: number) {
+  return () => {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let value = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    value = value + Math.imul(value ^ (value >>> 7), 61 | value) ^ value;
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function addBox(
+  group: THREE.Group,
+  size: [number, number, number],
+  position: [number, number, number],
+  color: number,
+  rotationY = 0,
+) {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(...size),
+    new THREE.MeshStandardMaterial({ color, roughness: 0.72, metalness: 0.06 }),
   );
-  beacon.position.set(0.12, 1.5, 0.32);
-  group.add(beacon);
+  mesh.position.set(...position);
+  mesh.rotation.y = rotationY;
+  group.add(mesh);
+  return mesh;
+}
 
-  const limbGeometry = new THREE.CapsuleGeometry(0.085, 0.4, 4, 10);
-  const makeLimb = (x: number, y: number) => {
+function addTree(group: THREE.Group, x: number, z: number, scale = 1) {
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.13 * scale, 0.18 * scale, 1.2 * scale, 7),
+    new THREE.MeshStandardMaterial({ color: 0x4a3427, roughness: 0.95 }),
+  );
+  trunk.position.set(x, 0.6 * scale, z);
+  group.add(trunk);
+  const crown = new THREE.Mesh(
+    new THREE.ConeGeometry(0.72 * scale, 1.65 * scale, 7),
+    new THREE.MeshStandardMaterial({ color: 0x193f35, roughness: 0.84 }),
+  );
+  crown.position.set(x, 1.72 * scale, z);
+  group.add(crown);
+}
+
+function addTextSprite(text: string, color = "#ffffff", font = "700 44px sans-serif") {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1024;
+  canvas.height = 256;
+  const context = canvas.getContext("2d")!;
+  context.font = font;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillStyle = color;
+  context.fillText(text, canvas.width / 2, canvas.height / 2);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(7, 1.75, 1);
+  sprite.userData.texture = texture;
+  return sprite;
+}
+
+function buildWalker() {
+  const root = new THREE.Group();
+  root.name = "ohaki-player";
+
+  const navy = new THREE.MeshStandardMaterial({ color: 0x17223a, roughness: 0.64 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x080d18, roughness: 0.72 });
+  const cyan = new THREE.MeshStandardMaterial({
+    color: 0x62e3ff,
+    emissive: 0x62e3ff,
+    emissiveIntensity: 1.15,
+    roughness: 0.3,
+  });
+
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.32, 0.48, 6, 14), navy);
+  torso.position.y = 1.13;
+  root.add(torso);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 16, 14), dark);
+  head.position.y = 1.83;
+  root.add(head);
+
+  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.39, 0.12, 0.07), cyan);
+  visor.position.set(0, 1.84, -0.24);
+  root.add(visor);
+
+  const pack = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.56, 0.28), dark);
+  pack.position.set(0, 1.16, 0.32);
+  root.add(pack);
+
+  const makeLimb = (x: number, y: number, radius: number) => {
     const pivot = new THREE.Group();
     pivot.position.set(x, y, 0);
-    const limb = new THREE.Mesh(limbGeometry, dark);
-    limb.position.y = -0.26;
-    pivot.add(limb);
-    group.add(pivot);
+    const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(radius, 0.42, 4, 9), dark);
+    mesh.position.y = -0.28;
+    pivot.add(mesh);
+    root.add(pivot);
     return pivot;
   };
-  const legL = makeLimb(-0.15, 0.62);
-  const legR = makeLimb(0.15, 0.62);
-  const armL = makeLimb(-0.4, 1.28);
-  const armR = makeLimb(0.4, 1.28);
+
+  const armL = makeLimb(-0.42, 1.43, 0.08);
+  const armR = makeLimb(0.42, 1.43, 0.08);
+  const legL = makeLimb(-0.16, 0.74, 0.1);
+  const legR = makeLimb(0.16, 0.74, 0.1);
 
   const lantern = new THREE.Mesh(
-    new THREE.SphereGeometry(0.09, 12, 12),
-    new THREE.MeshStandardMaterial({ color: 0xffd28a, emissive: 0xffb454, emissiveIntensity: 2.4 }),
-  );
-  lantern.position.y = -0.56;
-  armR.add(lantern);
-  const lanternLight = new THREE.PointLight(0xffc26e, 14, 9, 1.8);
-  lanternLight.position.y = -0.56;
-  armR.add(lanternLight);
-
-  return { group, legL, legR, armL, armR, head, lanternLight };
-}
-
-function buildCamp() {
-  const camp = new THREE.Group();
-  camp.position.z = -6;
-
-  const fire = new THREE.Group();
-  fire.position.set(1.9, 0, 0);
-  const stoneMaterial = new THREE.MeshStandardMaterial({ color: 0x2a3042, roughness: 0.9 });
-  for (let i = 0; i < 7; i += 1) {
-    const angle = (i / 7) * Math.PI * 2;
-    const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(0.13, 0), stoneMaterial);
-    stone.position.set(Math.cos(angle) * 0.55, 0.08, Math.sin(angle) * 0.55);
-    fire.add(stone);
-  }
-  const flameMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffb454,
-    emissive: 0xff8a3d,
-    emissiveIntensity: 2.6,
-    transparent: true,
-    opacity: 0.92,
-  });
-  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.72, 8), flameMaterial);
-  flame.position.y = 0.42;
-  fire.add(flame);
-  const flameCore = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.46, 8), flameMaterial.clone());
-  flameCore.position.y = 0.34;
-  fire.add(flameCore);
-  const fireLight = new THREE.PointLight(0xff9f43, 26, 12, 1.9);
-  fireLight.position.y = 0.8;
-  fire.add(fireLight);
-  camp.add(fire);
-
-  const tent = new THREE.Mesh(
-    new THREE.ConeGeometry(1.05, 1.5, 4),
-    new THREE.MeshStandardMaterial({ color: 0x1c2c46, roughness: 0.75 }),
-  );
-  tent.position.set(-2.6, 0.74, -0.8);
-  tent.rotation.y = Math.PI / 4;
-  camp.add(tent);
-
-  const flagPole = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.02, 0.02, 2.4, 6),
-    new THREE.MeshStandardMaterial({ color: 0x3a445f }),
-  );
-  flagPole.position.set(-1.2, 1.2, 1.4);
-  camp.add(flagPole);
-  const flag = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.52, 0.3),
+    new THREE.SphereGeometry(0.09, 12, 10),
     new THREE.MeshStandardMaterial({
-      color: 0x67e8f9,
-      emissive: 0x22d3ee,
-      emissiveIntensity: 0.55,
-      side: THREE.DoubleSide,
+      color: 0xffcf82,
+      emissive: 0xffa746,
+      emissiveIntensity: 2.3,
     }),
   );
-  flag.position.set(-0.93, 2.15, 1.4);
-  camp.add(flag);
+  lantern.position.y = -0.55;
+  armR.add(lantern);
+  const lanternLight = new THREE.PointLight(0xffc36f, 13, 8, 1.8);
+  lanternLight.position.y = -0.55;
+  armR.add(lanternLight);
 
-  return { camp, animated: [flame, flameCore, flag], fireLight };
+  const drone = new THREE.Group();
+  const droneCore = new THREE.Mesh(new THREE.OctahedronGeometry(0.13, 0), cyan);
+  drone.add(droneCore);
+  const droneRing = new THREE.Mesh(
+    new THREE.TorusGeometry(0.22, 0.014, 6, 32),
+    new THREE.MeshBasicMaterial({ color: 0x62e3ff }),
+  );
+  droneRing.rotation.x = Math.PI / 2;
+  drone.add(droneRing);
+  drone.position.set(0.78, 2.05, 0.1);
+  root.add(drone);
+
+  return { root, head, armL, armR, legL, legR, drone, lanternLight };
 }
 
-function buildWorkshop() {
-  const workshop = new THREE.Group();
-  workshop.position.z = -ZONE_SPAN - 4;
+function buildBasecamp() {
+  const group = new THREE.Group();
+  group.name = "basecamp";
 
-  const bench = new THREE.Mesh(
-    new THREE.BoxGeometry(2.6, 0.12, 1.1),
-    new THREE.MeshStandardMaterial({ color: 0x182238, roughness: 0.55, metalness: 0.4 }),
+  addBox(group, [7.6, 0.08, 5.6], [-3, 0.03, -3], 0x17233b);
+
+  const tent = new THREE.Mesh(
+    new THREE.ConeGeometry(1.25, 1.7, 4),
+    new THREE.MeshStandardMaterial({ color: 0x26446c, roughness: 0.82 }),
   );
-  bench.position.set(-2.2, 0.86, 0.4);
-  workshop.add(bench);
-  for (const offset of [-1.05, 1.05]) {
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.8, 0.9), bench.material as THREE.Material);
-    leg.position.set(-2.2 + offset, 0.4, 0.4);
-    workshop.add(leg);
+  tent.position.set(-3, 0.85, -4);
+  tent.rotation.y = Math.PI / 4;
+  group.add(tent);
+
+  const fire = new THREE.Group();
+  fire.position.set(1.5, 0, -2.8);
+  const stoneMat = new THREE.MeshStandardMaterial({ color: 0x3c455b, roughness: 1 });
+  for (let index = 0; index < 8; index += 1) {
+    const angle = index / 8 * Math.PI * 2;
+    const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(0.14, 0), stoneMat);
+    stone.position.set(Math.cos(angle) * 0.62, 0.1, Math.sin(angle) * 0.62);
+    fire.add(stone);
   }
+  const flame = new THREE.Mesh(
+    new THREE.ConeGeometry(0.24, 0.76, 8),
+    new THREE.MeshStandardMaterial({
+      color: 0xffc35c,
+      emissive: 0xff7a30,
+      emissiveIntensity: 2.5,
+      transparent: true,
+      opacity: 0.95,
+    }),
+  );
+  flame.position.y = 0.46;
+  fire.add(flame);
+  const fireLight = new THREE.PointLight(0xff9b52, 24, 12, 1.9);
+  fireLight.position.y = 0.8;
+  fire.add(fireLight);
+  group.add(fire);
+
+  const title = addTextSprite("OHKI / START HERE", "#62e3ff", "800 52px monospace");
+  title.position.set(-2.6, 3.2, -4.3);
+  group.add(title);
+
+  return { group, flame, fireLight };
+}
+
+function buildLab() {
+  const group = new THREE.Group();
+  group.name = "prototype-lab";
+  group.position.z = -34;
+
+  addBox(group, [11, 0.1, 7], [2.2, 0.04, 0], 0x1b2940);
+  addBox(group, [4.8, 0.18, 1.4], [-1.2, 0.9, -0.4], 0x263957);
 
   const holo = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(0.5, 1),
-    new THREE.MeshBasicMaterial({ color: 0x67e8f9, wireframe: true, transparent: true, opacity: 0.8 }),
+    new THREE.IcosahedronGeometry(0.62, 1),
+    new THREE.MeshBasicMaterial({ color: 0xf3d768, wireframe: true, transparent: true, opacity: 0.9 }),
   );
-  holo.position.set(-2.2, 1.9, 0.4);
-  workshop.add(holo);
+  holo.position.set(-1.2, 2.05, -0.4);
+  group.add(holo);
 
   const panels: THREE.Mesh[] = [];
-  const panelMaterial = new THREE.MeshStandardMaterial({
-    color: 0x0f1b2e,
-    emissive: 0x22d3ee,
-    emissiveIntensity: 0.55,
-    roughness: 0.35,
-    metalness: 0.2,
-  });
-  [
-    { x: 2.1, y: 1.7, z: -1.4, w: 1.5, h: 1.0 },
-    { x: 3.2, y: 2.4, z: -2.6, w: 1.1, h: 1.5 },
-    { x: 1.4, y: 2.9, z: -3.4, w: 1.9, h: 0.7 },
-  ].forEach((spec, index) => {
-    const panel = new THREE.Mesh(new THREE.BoxGeometry(spec.w, spec.h, 0.04), panelMaterial.clone());
-    panel.position.set(spec.x, spec.y, spec.z);
-    panel.rotation.y = -0.5 - index * 0.12;
-    workshop.add(panel);
+  const specs = [
+    [3.2, 2, -1.7, 1.8, 1.1],
+    [4.8, 2.8, -2.8, 1.4, 1.8],
+    [2.6, 3.4, -3.7, 2.4, 0.8],
+  ];
+  specs.forEach(([x, y, z, width, height], index) => {
+    const panel = addBox(group, [width, height, 0.05], [x, y, z], 0x2b4960, -0.45 - index * 0.08);
+    (panel.material as THREE.MeshStandardMaterial).emissive.set(0x1c8fa0);
+    (panel.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.65;
     panels.push(panel);
   });
 
-  const workshopLight = new THREE.PointLight(0x22d3ee, 20, 14, 1.8);
-  workshopLight.position.set(1.8, 2.6, -1.4);
-  workshop.add(workshopLight);
+  const title = addTextSprite("THE PROTOTYPE LAB", "#f3d768", "800 52px monospace");
+  title.position.set(-0.5, 4.25, -2.4);
+  group.add(title);
 
-  return { workshop, holo, panels, workshopLight };
+  const light = new THREE.PointLight(0xf3d768, 18, 18, 1.8);
+  light.position.set(0, 3, 0);
+  group.add(light);
+
+  return { group, holo, panels, light };
 }
 
-function buildTrail(projects: Project[]) {
-  const trail = new THREE.Group();
-  const startZ = -ZONE_SPAN * 2 - 6;
-  const spacing = Math.min(3.6, 20 / Math.max(projects.length, 1));
+function buildProjects(projects: Project[]) {
+  const group = new THREE.Group();
+  group.name = "project-district";
+  group.position.z = -72;
+  const hitboxes: THREE.Mesh[] = [];
   const orbs: THREE.Mesh[] = [];
-  const rings: THREE.Mesh[] = [];
 
   projects.forEach((project, index) => {
-    const z = startZ - index * spacing;
-    const side = index % 2 === 0 ? 1 : -1;
-    const x = side * (2.6 + (index % 3) * 0.35);
-    const color = new THREE.Color(colorByLanguage[project.language ?? ""] ?? "#f0abfc");
+    const row = Math.floor(index / 2);
+    const side = index % 2 === 0 ? -1 : 1;
+    const z = -row * 6;
+    const x = side * 4.2;
+    const color = new THREE.Color(languageColors[project.language ?? ""] ?? "#cb8eff");
 
-    const pillar = new THREE.Mesh(
-      new THREE.BoxGeometry(0.14, 0.9, 0.14),
-      new THREE.MeshStandardMaterial({ color: 0x232a41, roughness: 0.5, metalness: 0.5 }),
-    );
-    pillar.position.set(x, 0.45, z);
-    trail.add(pillar);
+    addBox(group, [5.8, 0.09, 4.3], [x, 0.035, z], 0x251b2a);
+    addBox(group, [3.6, 1.2, 0.24], [x, 0.76, z - 1.4], 0x34223d);
+    const panel = addBox(group, [3.1, 0.72, 0.08], [x, 0.8, z - 1.57], 0x12101c);
+    const panelMat = panel.material as THREE.MeshStandardMaterial;
+    panelMat.emissive.copy(color);
+    panelMat.emissiveIntensity = 0.35;
 
     const orb = new THREE.Mesh(
-      new THREE.DodecahedronGeometry(0.34, 1),
+      new THREE.DodecahedronGeometry(0.4, 1),
       new THREE.MeshStandardMaterial({
         color,
         emissive: color,
-        emissiveIntensity: 0.85,
+        emissiveIntensity: 1,
         roughness: 0.25,
         metalness: 0.2,
       }),
     );
-    orb.position.set(x, 1.28, z);
-    orb.name = project.name;
-    orb.userData = { project, baseY: 1.28, index };
-    trail.add(orb);
+    orb.position.set(x + side * 1.25, 1.65, z - 0.2);
+    orb.userData = { project, baseY: orb.position.y };
+    group.add(orb);
     orbs.push(orb);
 
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.58, 0.012, 6, 60),
-      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.4 }),
+    const hitbox = new THREE.Mesh(
+      new THREE.BoxGeometry(4.6, 2.4, 3.4),
+      new THREE.MeshBasicMaterial({ visible: false }),
     );
-    ring.position.copy(orb.position);
-    ring.rotation.x = Math.PI / 2.4;
-    trail.add(ring);
-    rings.push(ring);
+    hitbox.position.set(x, 1.1, z - 0.2);
+    hitbox.userData = { project, orb };
+    group.add(hitbox);
+    hitboxes.push(hitbox);
+
+    const label = addTextSprite(project.name, color.getStyle(), "800 46px monospace");
+    label.position.set(x, 2.45, z - 1.45);
+    label.scale.set(4.2, 1.05, 1);
+    group.add(label);
   });
 
-  const trailLight = new THREE.PointLight(0xfb7185, 16, 16, 1.8);
-  trailLight.position.set(0, 2.4, startZ - 2);
-  trail.add(trailLight);
+  const title = addTextSprite("PUBLIC PROJECT DISTRICT", "#ff806f", "800 52px monospace");
+  title.position.set(0, 5.2, -4);
+  group.add(title);
 
-  return { trail, orbs, rings };
+  const light = new THREE.PointLight(0xff806f, 22, 22, 1.8);
+  light.position.set(0, 4, -4);
+  group.add(light);
+
+  return { group, hitboxes, orbs, light };
 }
 
-function buildSummit() {
-  const summit = new THREE.Group();
-  const z = -PATH_LENGTH - 5;
-  summit.position.z = z;
+function buildSignal() {
+  const group = new THREE.Group();
+  group.name = "signal-summit";
+  group.position.z = -108;
 
-  const portal = new THREE.Mesh(
-    new THREE.TorusGeometry(2.1, 0.07, 10, 90),
+  addBox(group, [14, 0.12, 9], [0, 0.04, -1], 0x152c2b);
+
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(2.5, 0.1, 10, 96),
     new THREE.MeshStandardMaterial({
-      color: 0xbef264,
-      emissive: 0x84cc16,
-      emissiveIntensity: 1.6,
-      roughness: 0.3,
+      color: 0xb9f46d,
+      emissive: 0x79be33,
+      emissiveIntensity: 1.7,
+      roughness: 0.28,
     }),
   );
-  portal.position.set(0, 2.4, -2.5);
-  summit.add(portal);
+  ring.position.set(0, 3, -3);
+  group.add(ring);
 
-  const portalLight = new THREE.PointLight(0xbef264, 30, 20, 1.7);
-  portalLight.position.set(0, 2.6, -2.2);
-  summit.add(portalLight);
+  const light = new THREE.PointLight(0xb9f46d, 32, 24, 1.7);
+  light.position.set(0, 3, -2);
+  group.add(light);
 
-  const rocks: THREE.Mesh[] = [];
-  for (let i = 0; i < 6; i += 1) {
-    const rock = new THREE.Mesh(
-      new THREE.TetrahedronGeometry(0.22 + (i % 3) * 0.1, 0),
-      new THREE.MeshStandardMaterial({ color: 0x2c3550, roughness: 0.8 }),
+  const title = addTextSprite("SEND THE NEXT SIGNAL", "#b9f46d", "800 52px monospace");
+  title.position.set(0, 6.7, -3);
+  group.add(title);
+
+  const stones: THREE.Mesh[] = [];
+  for (let index = 0; index < 7; index += 1) {
+    const angle = index / 7 * Math.PI * 2;
+    const stone = new THREE.Mesh(
+      new THREE.TetrahedronGeometry(0.28 + index % 3 * 0.1, 0),
+      new THREE.MeshStandardMaterial({ color: 0x2d4550, roughness: 0.78 }),
     );
-    const angle = (i / 6) * Math.PI * 2;
-    rock.position.set(Math.cos(angle) * 3.4, 1.2 + Math.sin(angle * 2) * 0.6, Math.sin(angle) * 2.6 - 2);
-    summit.add(rock);
-    rocks.push(rock);
+    stone.position.set(Math.cos(angle) * 3.8, 1.3 + Math.sin(angle * 2) * 0.55, Math.sin(angle) * 2.6 - 3);
+    group.add(stone);
+    stones.push(stone);
   }
 
-  return { summit, portal, rocks, portalLight };
+  return { group, ring, stones, light };
 }
 
-function JourneyWorld({
+function buildPath() {
+  const group = new THREE.Group();
+  const segments = 180;
+  const plankGeometry = new THREE.BoxGeometry(2.8, 0.04, 0.42);
+  const plankMaterial = new THREE.MeshStandardMaterial({ color: 0x182135, roughness: 0.78 });
+  const planks = new THREE.InstancedMesh(plankGeometry, plankMaterial, segments);
+  const helper = new THREE.Object3D();
+
+  for (let index = 0; index < segments; index += 1) {
+    const t = index / (segments - 1);
+    const z = 9 - t * 128;
+    const x = pathX(-z);
+    const nextX = pathX(-z + 0.5);
+    helper.position.set(x, 0.025, z);
+    helper.rotation.y = Math.atan2(nextX - x, -0.5);
+    helper.updateMatrix();
+    planks.setMatrixAt(index, helper.matrix);
+  }
+  planks.instanceMatrix.needsUpdate = true;
+  group.add(planks);
+
+  const edgeMaterial = new THREE.MeshBasicMaterial({ color: 0x62e3ff, transparent: true, opacity: 0.32 });
+  const edgeGeometry = new THREE.BoxGeometry(0.035, 0.025, 0.5);
+  const edges = new THREE.InstancedMesh(edgeGeometry, edgeMaterial, segments * 2);
+  for (let index = 0; index < segments; index += 1) {
+    const t = index / (segments - 1);
+    const z = 9 - t * 128;
+    const x = pathX(-z);
+    const nextX = pathX(-z + 0.5);
+    const rotation = Math.atan2(nextX - x, -0.5);
+    for (let side = 0; side < 2; side += 1) {
+      helper.position.set(x + (side ? 1.5 : -1.5), 0.052, z);
+      helper.rotation.y = rotation;
+      helper.updateMatrix();
+      edges.setMatrixAt(index * 2 + side, helper.matrix);
+    }
+  }
+  edges.instanceMatrix.needsUpdate = true;
+  group.add(edges);
+  return { group, edgeMaterial };
+}
+
+function GameWorld({
   projects,
-  selected,
-  onSelect,
-  onZoneChange,
+  onActiveZone,
+  onProject,
 }: {
   projects: Project[];
-  selected: string | null;
-  onSelect: (project: Project) => void;
-  onZoneChange: (zone: number) => void;
+  onActiveZone: (zone: number) => void;
+  onProject: (project: Project) => void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
-  const selectedRef = useRef(selected);
-  const selectRef = useRef(onSelect);
-  const zoneRef = useRef(onZoneChange);
+  const zoneRef = useRef(onActiveZone);
+  const projectRef = useRef(onProject);
 
-  useEffect(() => {
-    selectedRef.current = selected;
-  }, [selected]);
-  useEffect(() => {
-    selectRef.current = onSelect;
-  }, [onSelect]);
-  useEffect(() => {
-    zoneRef.current = onZoneChange;
-  }, [onZoneChange]);
+  useEffect(() => { zoneRef.current = onActiveZone; }, [onActiveZone]);
+  useEffect(() => { projectRef.current = onProject; }, [onProject]);
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
-
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(new THREE.Color(zonePalettes[0].fog), 0.034);
-    const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 160);
-    camera.position.set(0, 2.4, 8.4);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.7));
+    scene.background = new THREE.Color(0x071018);
+    scene.fog = new THREE.FogExp2(0x071018, 0.019);
+
+    const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 170);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.65));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;
     renderer.domElement.setAttribute("aria-hidden", "true");
     mount.appendChild(renderer.domElement);
 
-    const hemi = new THREE.HemisphereLight(new THREE.Color(zonePalettes[0].hemi), 0x120a1c, 1.35);
+    const hemi = new THREE.HemisphereLight(0x8ca3c8, 0x071018, 1.75);
     scene.add(hemi);
-    const rim = new THREE.DirectionalLight(0x9fb2ff, 0.5);
-    rim.position.set(-6, 8, 6);
-    scene.add(rim);
+    const sun = new THREE.DirectionalLight(0xe8f2ff, 1.15);
+    sun.position.set(-7, 12, 5);
+    scene.add(sun);
 
-    // Ground + glowing path ribbon
-    const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x0d101d, roughness: 0.95 });
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(260, 240), groundMaterial);
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(260, 260),
+      new THREE.MeshStandardMaterial({ color: 0x0a1720, roughness: 0.98 }),
+    );
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.02;
+    ground.position.z = -54;
     scene.add(ground);
 
-    const ribbon = new THREE.Mesh(
-      new THREE.PlaneGeometry(3.1, PATH_LENGTH + 30),
-      new THREE.MeshStandardMaterial({ color: 0x10131f, roughness: 0.85 }),
-    );
-    ribbon.rotation.x = -Math.PI / 2;
-    ribbon.position.set(0, 0.005, -PATH_LENGTH / 2 + 6);
-    scene.add(ribbon);
+    const path = buildPath();
+    scene.add(path.group);
 
-    const edgeMaterial = new THREE.MeshBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.5 });
-    [-1.62, 1.62].forEach((x) => {
-      const edge = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.02, PATH_LENGTH + 30), edgeMaterial);
-      edge.position.set(x, 0.03, -PATH_LENGTH / 2 + 6);
-      scene.add(edge);
-    });
-
-    // Stars
-    const starGeometry = new THREE.BufferGeometry();
-    const starPositions = new Float32Array(720 * 3);
-    let seed = 41;
-    const random = () => {
-      seed = (seed * 16807) % 2147483647;
-      return seed / 2147483647;
-    };
-    for (let i = 0; i < starPositions.length; i += 3) {
-      starPositions[i] = (random() - 0.5) * 140;
-      starPositions[i + 1] = 6 + random() * 38;
-      starPositions[i + 2] = 24 - random() * (PATH_LENGTH + 80);
+    const rand = mulberry(837);
+    for (let index = 0; index < 88; index += 1) {
+      const z = 8 - rand() * 126;
+      const center = pathX(-z);
+      const side = rand() > 0.5 ? 1 : -1;
+      addTree(scene as unknown as THREE.Group, center + side * (5.5 + rand() * 20), z, 0.65 + rand() * 1.2);
     }
-    starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
-    const stars = new THREE.Points(
-      starGeometry,
-      new THREE.PointsMaterial({ color: 0xb8c6ea, size: 0.09, transparent: true, opacity: 0.7 }),
-    );
-    scene.add(stars);
 
-    // Fireflies hugging the path
-    const flyGeometry = new THREE.BufferGeometry();
-    const flyPositions = new Float32Array(240 * 3);
-    for (let i = 0; i < flyPositions.length; i += 3) {
-      flyPositions[i] = (random() - 0.5) * 14;
-      flyPositions[i + 1] = 0.3 + random() * 3;
-      flyPositions[i + 2] = 8 - random() * (PATH_LENGTH + 24);
+    const dustGeometry = new THREE.BufferGeometry();
+    const dustPositions = new Float32Array(620 * 3);
+    for (let index = 0; index < 620; index += 1) {
+      dustPositions[index * 3] = (rand() - 0.5) * 70;
+      dustPositions[index * 3 + 1] = 0.35 + rand() * 12;
+      dustPositions[index * 3 + 2] = 16 - rand() * 146;
     }
-    flyGeometry.setAttribute("position", new THREE.BufferAttribute(flyPositions, 3));
-    const flyMaterial = new THREE.PointsMaterial({
-      color: 0x8de0ff,
-      size: 0.05,
-      transparent: true,
-      opacity: 0.55,
-    });
-    const flies = new THREE.Points(flyGeometry, flyMaterial);
-    scene.add(flies);
-
-    // Locations
-    const zoneGroups: { group: THREE.Group; centerZ: number; props: THREE.Object3D[] }[] = [];
-    const camp = buildCamp();
-    const workshop = buildWorkshop();
-    const trail = buildTrail(projects);
-    const summit = buildSummit();
-
-    scene.add(camp.camp, workshop.workshop, trail.trail, summit.summit);
-    zoneGroups.push(
-      { group: camp.camp, centerZ: -5, props: [...camp.camp.children] },
-      { group: workshop.workshop, centerZ: -ZONE_SPAN - 3, props: [...workshop.workshop.children] },
-      { group: trail.trail, centerZ: -ZONE_SPAN * 2 - 8, props: [...trail.trail.children] },
-      { group: summit.summit, centerZ: -PATH_LENGTH - 4, props: [...summit.summit.children] },
+    dustGeometry.setAttribute("position", new THREE.BufferAttribute(dustPositions, 3));
+    const dust = new THREE.Points(
+      dustGeometry,
+      new THREE.PointsMaterial({ color: 0x8fb1c4, size: 0.055, transparent: true, opacity: 0.48 }),
     );
-    zoneGroups.forEach((zone) => {
-      zone.props.forEach((prop) => prop.scale.setScalar(0.001));
-    });
+    scene.add(dust);
 
-    const traveler = buildTraveler();
-    traveler.group.position.set(pathX(0), 0, 6);
-    scene.add(traveler.group);
+    const basecamp = buildBasecamp();
+    const lab = buildLab();
+    const district = buildProjects(projects);
+    const signal = buildSignal();
+    scene.add(basecamp.group, lab.group, district.group, signal.group);
 
-    // Interaction
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2(3, 3);
+    const walker = buildWalker();
+    walker.root.position.set(pathX(0), 0, 6);
+    scene.add(walker.root);
+
+    const keys = new Set<string>();
+    let touchVector = new THREE.Vector2();
+    let stickPointer: number | null = null;
+    let moving = false;
     let hovered: THREE.Mesh | null = null;
+    let frame = 0;
+    let zone = 0;
+    let transition = 0;
+    let travelZ = 0;
+    let requestedTravelZ: number | null = null;
+    let walkPhase = 0;
+    let pointerX = 0;
+    const target = new THREE.Vector3();
+    const desiredCamera = new THREE.Vector3();
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2(4, 4);
+
+    const updateKey = (event: KeyboardEvent, down: boolean) => {
+      const code = event.code;
+      if (["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight", "Space"].includes(code)) {
+        event.preventDefault();
+      }
+      if (down) keys.add(code);
+      else keys.delete(code);
+    };
+
+    const keyDown = (event: KeyboardEvent) => updateKey(event, true);
+    const keyUp = (event: KeyboardEvent) => updateKey(event, false);
+    window.addEventListener("keydown", keyDown);
+    window.addEventListener("keyup", keyUp);
+    const moveToChapter = (event: Event) => {
+      const chapter = THREE.MathUtils.clamp(
+        (event as CustomEvent<number>).detail,
+        0,
+        chapters.length - 1,
+      );
+      requestedTravelZ = [0, 32, 70, 105][chapter];
+    };
+    window.addEventListener("ohaki:travel", moveToChapter);
 
     const pointerMove = (event: PointerEvent) => {
+      pointerX = event.clientX / Math.max(innerWidth, 1) * 2 - 1;
       const rect = renderer.domElement.getBoundingClientRect();
       pointer.set(
-        ((event.clientX - rect.left) / rect.width) * 2 - 1,
-        -((event.clientY - rect.top) / rect.height) * 2 + 1,
+        (event.clientX - rect.left) / rect.width * 2 - 1,
+        -(event.clientY - rect.top) / rect.height * 2 + 1,
       );
     };
-    const click = () => {
-      if (hovered) {
-        selectRef.current(hovered.userData.project as Project);
-        document.getElementById("work")?.scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
-      }
+    const pointerClick = () => {
+      if (hovered) projectRef.current(hovered.userData.project as Project);
     };
     renderer.domElement.addEventListener("pointermove", pointerMove);
-    renderer.domElement.addEventListener("click", click);
+    renderer.domElement.addEventListener("click", pointerClick);
+
+    const joystick = document.querySelector<HTMLElement>(".joystick");
+    const joystickStart = (event: PointerEvent) => {
+      stickPointer = event.pointerId;
+      joystick?.setPointerCapture(event.pointerId);
+    };
+    const joystickMove = (event: PointerEvent) => {
+      if (event.pointerId !== stickPointer || !joystick) return;
+      const rect = joystick.getBoundingClientRect();
+      touchVector.set(
+        THREE.MathUtils.clamp((event.clientX - rect.left - rect.width / 2) / (rect.width / 2), -1, 1),
+        THREE.MathUtils.clamp(-(event.clientY - rect.top - rect.height / 2) / (rect.height / 2), -1, 1),
+      );
+      joystick.style.setProperty("--stick-x", `${touchVector.x * 28}px`);
+      joystick.style.setProperty("--stick-y", `${-touchVector.y * 28}px`);
+    };
+    const joystickEnd = (event: PointerEvent) => {
+      if (event.pointerId !== stickPointer) return;
+      stickPointer = null;
+      touchVector.set(0, 0);
+      joystick?.style.setProperty("--stick-x", "0px");
+      joystick?.style.setProperty("--stick-y", "0px");
+    };
+    joystick?.addEventListener("pointerdown", joystickStart);
+    joystick?.addEventListener("pointermove", joystickMove);
+    joystick?.addEventListener("pointerup", joystickEnd);
+    joystick?.addEventListener("pointercancel", joystickEnd);
 
     const resize = () => {
       const width = mount.clientWidth;
@@ -485,183 +575,123 @@ function JourneyWorld({
       camera.aspect = width / Math.max(height, 1);
       camera.updateProjectionMatrix();
     };
-    const resizeObserver = new ResizeObserver(resize);
-    resizeObserver.observe(mount);
+    const observer = new ResizeObserver(resize);
+    observer.observe(mount);
     resize();
 
-    // Zone transition pulses
-    const pulses: { mesh: THREE.Mesh; life: number }[] = [];
-    let currentZone = 0;
-    zoneRef.current(0);
-
-    const spawnPulse = (position: THREE.Vector3, color: THREE.Color) => {
-      const mesh = new THREE.Mesh(
-        new THREE.TorusGeometry(1.2, 0.02, 8, 64),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.75 }),
-      );
-      mesh.rotation.x = Math.PI / 2;
-      mesh.position.copy(position);
-      mesh.position.y = 0.06;
-      scene.add(mesh);
-      pulses.push({ mesh, life: 1 });
-    };
-
+    const palette = [
+      [0x071018, 0x62e3ff],
+      [0x11151a, 0xf3d768],
+      [0x180d18, 0xff806f],
+      [0x081411, 0xb9f46d],
+    ];
     const clock = new THREE.Clock();
-    let frame = 0;
-    let smoothedProgress = 0;
-    let smoothedSpeed = 0;
-    let lastProgress = 0;
-    const fogColor = new THREE.Color();
-    const hemiColor = new THREE.Color();
-    const accentA = new THREE.Color();
-    const accentB = new THREE.Color();
 
     const animate = () => {
       frame = requestAnimationFrame(animate);
-      const dt = Math.min(clock.getDelta(), 0.05);
+      const delta = Math.min(clock.getDelta(), 0.05);
       const time = clock.getElapsedTime();
 
-      const maxScroll = Math.max(document.documentElement.scrollHeight - innerHeight, 1);
-      const rawProgress = Math.min(Math.max(scrollY / maxScroll, 0), 1);
-      const blend = reduced ? 1 : 0.09;
-      smoothedProgress += (rawProgress - smoothedProgress) * blend;
-      const instantSpeed = Math.abs(rawProgress - lastProgress) / Math.max(dt, 0.001);
-      lastProgress = rawProgress;
-      smoothedSpeed += (Math.min(instantSpeed * 1.6, 1.6) - smoothedSpeed) * 0.08;
-      const walking = Math.min(smoothedSpeed, 1);
+      let forward = 0;
+      let sideways = 0;
+      if (keys.has("KeyW") || keys.has("ArrowUp")) forward += 1;
+      if (keys.has("KeyS") || keys.has("ArrowDown")) forward -= 1;
+      if (keys.has("KeyD") || keys.has("ArrowRight")) sideways += 1;
+      if (keys.has("KeyA") || keys.has("ArrowLeft")) sideways -= 1;
+      forward += touchVector.y;
+      sideways += touchVector.x;
+      moving = Math.abs(forward) + Math.abs(sideways) > 0.05;
 
-      // Traveler movement along the path
-      const p = smoothedProgress;
-      const targetZ = 6 - p * (PATH_LENGTH + 10);
-      const targetX = pathX(p);
-      const prevX = traveler.group.position.x;
-      const prevZ = traveler.group.position.z;
-      traveler.group.position.x += (targetX - prevX) * (reduced ? 1 : 0.16);
-      traveler.group.position.z += (targetZ - prevZ) * (reduced ? 1 : 0.16);
-      const vx = traveler.group.position.x - prevX;
-      const vz = traveler.group.position.z - prevZ;
-      if (Math.abs(vz) > 0.0004 || Math.abs(vx) > 0.0004) {
-        const targetYaw = Math.atan2(vx, vz);
-        let delta = targetYaw - traveler.group.rotation.y;
-        while (delta > Math.PI) delta -= Math.PI * 2;
-        while (delta < -Math.PI) delta += Math.PI * 2;
-        traveler.group.rotation.y += delta * 0.2;
+      if (requestedTravelZ !== null) {
+        const difference = requestedTravelZ - travelZ;
+        if (Math.abs(difference) < 0.35) {
+          travelZ = requestedTravelZ;
+          requestedTravelZ = null;
+        } else {
+          travelZ += Math.sign(difference) * Math.min(Math.abs(difference), 18 * delta);
+          forward = Math.sign(difference);
+          moving = true;
+        }
       }
 
-      // Walk cycle / idle
-      const swing = reduced ? 0 : Math.sin(time * 9.5) * (0.18 + walking * 0.55);
-      traveler.legL.rotation.x = swing;
-      traveler.legR.rotation.x = -swing;
-      traveler.armL.rotation.x = -swing * 0.85;
-      traveler.armR.rotation.x = swing * 0.55;
-      traveler.group.position.y = reduced ? 0 : Math.abs(Math.cos(time * 9.5)) * 0.06 * walking;
-      traveler.group.rotation.z = reduced ? 0 : Math.sin(time * 9.5) * 0.025 * walking;
-      if (!reduced && walking < 0.06) {
-        traveler.head.rotation.y = Math.sin(time * 0.6) * 0.35;
-        traveler.group.position.y += Math.sin(time * 1.6) * 0.012;
-      } else {
-        traveler.head.rotation.y *= 0.9;
+      if (requestedTravelZ === null && Math.abs(forward) + Math.abs(sideways) > 0.05) {
+        const speed = keys.has("Space") ? 10.5 : 6.4;
+        travelZ = THREE.MathUtils.clamp(travelZ + forward * speed * delta, 0, zoneEnds[3] + 8);
+        const center = pathX(travelZ);
+        walker.root.position.x = THREE.MathUtils.clamp(
+          walker.root.position.x + sideways * 4.2 * delta,
+          center - 4.4,
+          center + 4.4,
+        );
+        walker.root.position.z = 6 - travelZ;
+        const targetYaw = forward < -0.05 ? Math.PI : 0;
+        walker.root.rotation.y += (targetYaw - walker.root.rotation.y) * 0.16;
+        walkPhase += delta * (keys.has("Space") ? 14 : 9.5);
       }
 
-      // Zone blending for atmosphere
-      const zoneFloat = Math.min(Math.max((p * chapters.length * 1.06 - 0.03), 0), chapters.length - 1);
-      const zoneIndex = Math.min(Math.floor(zoneFloat), chapters.length - 1);
-      const zoneFrac = zoneFloat - zoneIndex;
-      const nextIndex = Math.min(zoneIndex + 1, chapters.length - 1);
-      const a = zonePalettes[zoneIndex];
-      const b = zonePalettes[nextIndex];
-      fogColor.set(a.fog).lerp(new THREE.Color(b.fog), zoneFrac);
-      (scene.fog as THREE.FogExp2).color.copy(fogColor);
-      hemiColor.set(a.hemi).lerp(new THREE.Color(b.hemi), zoneFrac);
-      hemi.color.copy(hemiColor);
-      accentA.set(a.accent);
-      accentB.set(b.accent);
-      accentA.lerp(accentB, zoneFrac);
-      traveler.lanternLight.color.copy(accentA).lerp(new THREE.Color("#ffd28a"), 0.5);
-      edgeMaterial.color.set(a.edge).lerp(new THREE.Color(b.edge), zoneFrac);
+      const pathCenter = pathX(travelZ);
+      walker.root.position.x += (pathCenter - walker.root.position.x) * (moving ? 0.012 : 0.022);
+      const energy = moving ? 1 : 0.16;
+      const swing = reduced ? 0 : Math.sin(walkPhase) * 0.62 * energy;
+      walker.legL.rotation.x = swing;
+      walker.legR.rotation.x = -swing;
+      walker.armL.rotation.x = -swing * 0.78;
+      walker.armR.rotation.x = swing * 0.48;
+      walker.root.position.y = reduced ? 0 : Math.abs(Math.cos(walkPhase)) * 0.055 * energy;
+      walker.head.rotation.y = moving ? 0 : Math.sin(time * 0.7) * 0.34;
+      walker.drone.position.y = 2.05 + (reduced ? 0 : Math.sin(time * 2) * 0.12);
+      walker.drone.rotation.y = time * 0.9;
 
-      if (zoneIndex !== currentZone) {
-        currentZone = zoneIndex;
-        zoneRef.current(zoneIndex);
-        if (!reduced) spawnPulse(traveler.group.position, accentA.clone());
+      const nextZone = travelZ < 23 ? 0 : travelZ < 59 ? 1 : travelZ < 96 ? 2 : 3;
+      if (nextZone !== zone) {
+        zone = nextZone;
+        transition = 1;
+        zoneRef.current(zone);
       }
+      transition *= reduced ? 0 : 0.94;
 
-      // Locations assemble as the traveler approaches
-      zoneGroups.forEach((zone) => {
-        const distance = Math.abs(zone.centerZ - traveler.group.position.z);
-        const visibility = Math.min(Math.max(1 - distance / 26, 0), 1);
-        zone.props.forEach((prop, index) => {
-          const staggered = Math.min(Math.max(visibility * 1.5 - index * 0.06, 0), 1);
-          const targetScale = reduced ? (visibility > 0.02 ? 1 : 0.001) : easeOutBack(staggered) * (staggered > 0 ? 1 : 0.001);
-          prop.scale.setScalar(Math.max(targetScale, 0.001));
-        });
+      const baseColor = new THREE.Color(palette[zone][0]);
+      const accentColor = new THREE.Color(palette[zone][1]);
+      scene.background = baseColor;
+      (scene.fog as THREE.FogExp2).color.lerp(baseColor, 0.08);
+      path.edgeMaterial.color.lerp(accentColor, 0.05);
+      hemi.color.lerp(accentColor, 0.015);
+      walker.lanternLight.color.lerp(accentColor, 0.03);
+
+      basecamp.fireLight.intensity = 22 + Math.sin(time * 11) * 4;
+      basecamp.flame.scale.y = 1 + Math.sin(time * 13) * 0.16;
+      lab.holo.rotation.y = time * 0.58;
+      lab.holo.rotation.x = Math.sin(time * 0.8) * 0.28;
+      lab.holo.position.y = 2.05 + Math.sin(time * 1.4) * 0.1;
+      signal.ring.rotation.z = time * 0.22;
+      signal.light.intensity = 27 + Math.sin(time * 2.1) * 6;
+      signal.stones.forEach((stone, index) => {
+        stone.rotation.y = time * (0.18 + index * 0.035);
+      });
+      district.orbs.forEach((orb, index) => {
+        orb.rotation.y = time * (0.28 + index * 0.025);
+        orb.position.y = (orb.userData.baseY as number) + Math.sin(time * 1.25 + index) * 0.08;
+        const selected = orb === hovered;
+        const scale = selected ? 1.32 : 1;
+        orb.scale.lerp(new THREE.Vector3(scale, scale, scale), 0.14);
       });
 
-      // Living details
-      if (!reduced) {
-        camp.fireLight.intensity = 24 + Math.sin(time * 11) * 4 + Math.sin(time * 23) * 2;
-        camp.animated[0].scale.setScalar(1 + Math.sin(time * 12) * 0.12);
-        camp.animated[1].scale.setScalar(1 + Math.cos(time * 15) * 0.16);
-        camp.animated[2].rotation.y = Math.sin(time * 1.8) * 0.25;
-        workshop.holo.rotation.y = time * 0.6;
-        workshop.holo.rotation.x = Math.sin(time * 0.7) * 0.3;
-        workshop.holo.position.y = 1.9 + Math.sin(time * 1.4) * 0.08;
-        workshop.panels.forEach((panel, index) => {
-          panel.position.y += Math.sin(time * 0.9 + index * 1.7) * 0.0016;
-        });
-        summit.portal.rotation.z = time * 0.28;
-        summit.portalLight.intensity = 26 + Math.sin(time * 2.2) * 6;
-        summit.rocks.forEach((rock, index) => {
-          rock.rotation.y = time * (0.2 + index * 0.05);
-          rock.position.y += Math.sin(time * 0.8 + index) * 0.0018;
-        });
-        flyMaterial.opacity = 0.4 + Math.sin(time * 1.3) * 0.18;
-        flies.position.y = Math.sin(time * 0.5) * 0.14;
-      }
-
-      trail.orbs.forEach((orb, index) => {
-        const active = orb.name === selectedRef.current;
-        const isHovered = orb === hovered;
-        const target = active ? 1.45 : isHovered ? 1.24 : 1;
-        orb.scale.lerp(new THREE.Vector3(target, target, target), 0.14);
-        if (!reduced) {
-          orb.position.y = (orb.userData.baseY as number) + Math.sin(time * 1.2 + index) * 0.07;
-          orb.rotation.y = time * (0.25 + index * 0.02);
-          trail.rings[index].rotation.z = time * 0.35;
-        }
-      });
-
-      // Pulses
-      for (let i = pulses.length - 1; i >= 0; i -= 1) {
-        const pulse = pulses[i];
-        pulse.life -= dt * 1.15;
-        if (pulse.life <= 0) {
-          scene.remove(pulse.mesh);
-          pulse.mesh.geometry.dispose();
-          (pulse.mesh.material as THREE.Material).dispose();
-          pulses.splice(i, 1);
-          continue;
-        }
-        const growth = 1 + (1 - pulse.life) * 5;
-        pulse.mesh.scale.setScalar(growth);
-        (pulse.mesh.material as THREE.MeshBasicMaterial).opacity = pulse.life * 0.65;
-      }
-
-      // Hover raycast
       raycaster.setFromCamera(pointer, camera);
-      const hit = raycaster.intersectObjects(trail.orbs, false)[0]?.object as THREE.Mesh | undefined;
+      const hit = raycaster.intersectObjects(district.hitboxes, false)[0]?.object as THREE.Mesh | undefined;
       hovered = hit ?? null;
       renderer.domElement.style.cursor = hovered ? "pointer" : "default";
 
-      // Camera follows the traveler
-      const focus = traveler.group.position;
-      const camX = focus.x * 0.65 + pointer.x * (reduced ? 0 : 1.1);
-      const camY = 2.35 + pointer.y * (reduced ? 0 : 0.42);
-      const camZ = focus.z + 7.6;
-      camera.position.x += (camX - camera.position.x) * 0.055;
-      camera.position.y += (camY - camera.position.y) * 0.055;
-      camera.position.z += (camZ - camera.position.z) * 0.075;
-      camera.lookAt(focus.x * 0.6, 1.25, focus.z - 2.4);
+      target.copy(walker.root.position).add(new THREE.Vector3(0, 1.05, -2.5));
+      desiredCamera.set(
+        walker.root.position.x + pointerX * (reduced ? 0 : 0.9),
+        3.4 + transition * 0.45,
+        walker.root.position.z + 7.9,
+      );
+      camera.position.lerp(desiredCamera, 0.075);
+      camera.lookAt(target);
+      camera.fov += (48 + transition * 4.5 - camera.fov) * 0.12;
+      camera.updateProjectionMatrix();
+      dust.position.z = -travelZ * 0.08;
 
       renderer.render(scene, camera);
     };
@@ -669,15 +699,24 @@ function JourneyWorld({
 
     return () => {
       cancelAnimationFrame(frame);
-      resizeObserver.disconnect();
+      observer.disconnect();
+      window.removeEventListener("keydown", keyDown);
+      window.removeEventListener("keyup", keyUp);
+      window.removeEventListener("ohaki:travel", moveToChapter);
       renderer.domElement.removeEventListener("pointermove", pointerMove);
-      renderer.domElement.removeEventListener("click", click);
+      renderer.domElement.removeEventListener("click", pointerClick);
+      joystick?.removeEventListener("pointerdown", joystickStart);
+      joystick?.removeEventListener("pointermove", joystickMove);
+      joystick?.removeEventListener("pointerup", joystickEnd);
+      joystick?.removeEventListener("pointercancel", joystickEnd);
       scene.traverse((object) => {
         if (object instanceof THREE.Mesh || object instanceof THREE.Points) {
           object.geometry.dispose();
           const material = object.material as THREE.Material | THREE.Material[];
           if (Array.isArray(material)) material.forEach((item) => item.dispose());
           else material.dispose();
+          const texture = object.userData.texture as THREE.Texture | undefined;
+          texture?.dispose();
         }
       });
       renderer.dispose();
@@ -685,291 +724,156 @@ function JourneyWorld({
     };
   }, [projects]);
 
-  return <div className="journey-world" ref={mountRef} />;
+  return <div className="game-world" ref={mountRef} />;
+}
+
+function Intro({ start }: { start: () => void }) {
+  return (
+    <div className="game-intro">
+      <div className="intro-card">
+        <span className="eyebrow">OHAKIDEV / INTERACTIVE PORTFOLIO</span>
+        <h1>Drive the story yourself.</h1>
+        <p>
+          This is not a page to scroll. Walk through my work as a small explorable 3D world.
+          Every place is a chapter. Every glowing object is real.
+        </p>
+        <button type="button" className="start-button" onClick={start}>
+          Enter the world <ArrowIcon />
+        </button>
+        <small>WASD / arrow keys · mobile joystick · no portrait</small>
+      </div>
+    </div>
+  );
 }
 
 function ProjectPanel({ project, close }: { project: Project; close: () => void }) {
   return (
     <aside className="project-panel" aria-live="polite">
-      <button className="panel-close" type="button" onClick={close} aria-label="Close project detail">
-        ×
-      </button>
-      <p className="micro-label">TRAIL MILESTONE</p>
-      <h3>{project.name}</h3>
+      <button className="panel-close" type="button" onClick={close} aria-label="Close project detail">×</button>
+      <p className="eyebrow">PROJECT OBJECT</p>
+      <h2>{project.name}</h2>
       <p>{project.description}</p>
       <div className="project-meta">
         <span>{project.language ?? "Mixed stack"}</span>
         <span>★ {project.stars}</span>
         <span>{new Date(project.pushedAt).getFullYear()}</span>
       </div>
-      {project.topics.length > 0 && (
-        <div className="topic-row">
-          {project.topics.slice(0, 5).map((topic) => (
-            <span key={topic}>{topic}</span>
-          ))}
-        </div>
-      )}
       <div className="panel-actions">
-        <a href={project.url} target="_blank" rel="noreferrer">
-          View source <ArrowIcon />
-        </a>
-        {project.homepage && (
-          <a href={project.homepage} target="_blank" rel="noreferrer">
-            Open live project
-          </a>
-        )}
+        <a href={project.url} target="_blank" rel="noreferrer">View source <ArrowIcon /></a>
+        {project.homepage && <a href={project.homepage} target="_blank" rel="noreferrer">Open live project</a>}
       </div>
     </aside>
   );
 }
 
-function useReveal() {
-  useEffect(() => {
-    const elements = Array.from(document.querySelectorAll<HTMLElement>(".reveal"));
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.16 },
-    );
-    elements.forEach((element) => observer.observe(element));
-    return () => observer.disconnect();
-  }, []);
+function ZoneCard({
+  zone,
+  portfolio,
+  projects,
+}: {
+  zone: number;
+  portfolio: GitHubPortfolio;
+  projects: Project[];
+}) {
+  const content = [
+    {
+      kicker: "00 / ARRIVAL",
+      title: "Curious by default.",
+      copy: `I am ${portfolio.name}. I research what can make life better, then turn the useful parts into working products.`,
+    },
+    {
+      kicker: "01 / PROCESS",
+      title: "Observe. Connect. Prototype. Refine.",
+      copy: "The lab is how I work: start from friction, connect the systems, build a proof, and remove everything that does not help.",
+    },
+    {
+      kicker: "02 / PUBLIC TRAIL",
+      title: `${projects.length} experiments you can inspect.`,
+      copy: "Walk between the project stations. Click a glowing object to open the real repository and live deployment.",
+    },
+    {
+      kicker: "03 / NEXT SIGNAL",
+      title: "What should we make less difficult?",
+      copy: "The end of this road is an invitation. If the next useful experiment is yours, send the signal on GitHub.",
+    },
+  ][zone];
+
+  return (
+    <section className="zone-card" key={zone}>
+      <span>{content.kicker}</span>
+      <h2>{content.title}</h2>
+      <p>{content.copy}</p>
+      {zone === 3 && (
+        <a className="signal-link" href={portfolio.profileUrl} target="_blank" rel="noreferrer">
+          Open GitHub <ArrowIcon />
+        </a>
+      )}
+    </section>
+  );
 }
 
 export function Journey({ portfolio }: { portfolio: GitHubPortfolio }) {
-  const [selected, setSelected] = useState<Project | null>(portfolio.projects[0] ?? null);
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [activeChapter, setActiveChapter] = useState("origin");
+  const [started, setStarted] = useState(false);
   const [zone, setZone] = useState(0);
-  const chronological = useMemo(
+  const [project, setProject] = useState<Project | null>(null);
+  const projects = useMemo(
     () => [...portfolio.projects].sort((a, b) => Date.parse(a.pushedAt) - Date.parse(b.pushedAt)),
     [portfolio.projects],
   );
-  const languages = useMemo(
-    () => Array.from(new Set(portfolio.projects.map((project) => project.language).filter(Boolean))),
-    [portfolio.projects],
-  );
-
-  useReveal();
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const current = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (current) setActiveChapter(current.target.id);
-      },
-      { threshold: [0.25, 0.55] },
-    );
-    chapters.forEach(({ id }) => {
-      const element = document.getElementById(id);
-      if (element) observer.observe(element);
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  const inspect = (project: Project) => {
-    setSelected(project);
-    setPanelOpen(true);
-  };
 
   return (
-    <main>
-      <a href="#origin" className="skip-link">Skip to story</a>
-      <JourneyWorld
-        projects={chronological}
-        selected={selected?.name ?? null}
-        onSelect={inspect}
-        onZoneChange={setZone}
-      />
+    <main className="game-shell">
+      <GameWorld projects={projects} onActiveZone={setZone} onProject={setProject} />
 
-      <header className="site-nav">
-        <a href="#origin" className="brand" aria-label="ohakidev home">
+      {!started && <Intro start={() => setStarted(true)} />}
+
+      <header className="game-topbar">
+        <a className="brand" href={portfolio.profileUrl} target="_blank" rel="noreferrer">
           <span>O</span>
-          <strong>ohaki</strong>
+          <strong>ohaki.world</strong>
         </a>
-        <nav aria-label="Story chapters">
-          {chapters.map((chapter, index) => (
-            <a
-              key={chapter.id}
-              href={`#${chapter.id}`}
-              className={activeChapter === chapter.id ? "active" : ""}
-            >
-              <span>0{index + 1}</span>
-              {chapter.label}
-            </a>
-          ))}
-        </nav>
-        <a
-          className="github-link"
-          href={portfolio.profileUrl}
-          target="_blank"
-          rel="noreferrer"
-          aria-label="GitHub profile"
-        >
+        <div className="zone-name">
+          <i style={{ background: chapters[zone].color }} />
+          {chapters[zone].label}
+        </div>
+        <a className="github-link" href={portfolio.profileUrl} target="_blank" rel="noreferrer" aria-label="GitHub profile">
           <GitHubIcon />
         </a>
       </header>
 
-      <div className="chapter-progress" aria-hidden="true">
-        {chapters.map((chapter) => (
-          <span key={chapter.id} className={activeChapter === chapter.id ? "active" : ""} />
+      {started && <ZoneCard zone={zone} portfolio={portfolio} projects={projects} />}
+
+      <div className="controls-hint" aria-hidden="true">
+        <span className="key">W</span>
+        <span className="keyrow"><i>A</i><i>S</i><i>D</i></span>
+        <b>move</b>
+      </div>
+
+      <div className="joystick" aria-label="Move through the world">
+        <i />
+      </div>
+
+      <div className="world-progress" aria-label={`Chapter ${zone + 1} of ${chapters.length}`}>
+        {chapters.map((chapter, index) => (
+          <button
+            key={chapter.id}
+            type="button"
+            className={zone === index ? "active" : ""}
+            aria-label={chapter.label}
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent("ohaki:travel", { detail: index }));
+            }}
+          >
+            <i style={{ background: chapter.color }} />
+            <span>{chapter.label}</span>
+          </button>
         ))}
       </div>
 
-      <div className="journey-hud" aria-hidden="true">
-        <span className="hud-key">NOW ENTERING</span>
-        <strong key={zone} className="hud-place">{chapters[zone].hud}</strong>
-      </div>
+      {project && <ProjectPanel project={project} close={() => setProject(null)} />}
 
-      {panelOpen && selected && <ProjectPanel project={selected} close={() => setPanelOpen(false)} />}
-
-      <div className="story-shell">
-        <section className="story-chapter hero-chapter" id="origin" aria-labelledby="origin-title">
-          <div className="chapter-tag"><span>01</span> BASECAMP / RESEARCHER</div>
-          <div className="hero-grid">
-            <div className="hero-copy">
-              <p className="micro-label reveal">{portfolio.bio || "research everything that can make life better"}</p>
-              <h1 id="origin-title" className="reveal">
-                Curious by default.
-                <em>Useful by design.</em>
-              </h1>
-              <p className="hero-lede reveal">
-                I am <strong>{portfolio.name}</strong> — an independent builder walking through
-                products, automation, communities, and emerging technology. Scroll, and the
-                traveler moves.
-              </p>
-              <div className="hero-actions reveal">
-                <a href="#practice" className="primary-button">
-                  Start the journey <ArrowIcon />
-                </a>
-                <a href={portfolio.profileUrl} target="_blank" rel="noreferrer" className="quiet-link">
-                  @{portfolio.login}
-                </a>
-              </div>
-            </div>
-            <div className="hero-note reveal">
-              <span>THE JOURNEY</span>
-              <p>
-                Each location along the path is a chapter of real public work. Scroll to make the
-                traveler walk, move your pointer to look around, and click a glowing milestone to
-                open its source.
-              </p>
-              <div className="hero-stats">
-                <strong>{portfolio.publicRepos}</strong><span>public experiments</span>
-                <strong>{portfolio.followers}</strong><span>people following</span>
-                <strong>{languages.length}</strong><span>observed languages</span>
-              </div>
-            </div>
-          </div>
-          <div className="scroll-cue"><i /> scroll to start walking</div>
-        </section>
-
-        <section className="story-chapter practice-chapter" id="practice" aria-labelledby="practice-title">
-          <div className="chapter-tag"><span>02</span> WORKSHOP / HOW I BUILD</div>
-          <div className="section-heading">
-            <p className="micro-label reveal">No fixed title. A repeatable instinct.</p>
-            <h2 id="practice-title" className="reveal">Research becomes a prototype. A prototype becomes proof.</h2>
-          </div>
-          <div className="practice-grid">
-            {[
-              ["Observe", "Start with a real friction point, not a fashionable stack."],
-              ["Connect", "Map data, people, APIs, and constraints into one working system."],
-              ["Prototype", "Ship the smallest interactive proof that can teach something."],
-              ["Refine", "Keep what improves life. Remove what only adds noise."],
-            ].map(([title, copy], index) => (
-              <article key={title} className="reveal" style={{ transitionDelay: `${index * 90}ms` }}>
-                <span>0{index + 1}</span>
-                <h3>{title}</h3>
-                <p>{copy}</p>
-              </article>
-            ))}
-          </div>
-          <div className="stack-band reveal">
-            <p>Observed in the public work</p>
-            <div>
-              {languages.map((language) => (
-                <span key={language ?? "Mixed"}>
-                  <i style={{ background: colorByLanguage[language ?? ""] ?? "#f0abfc" }} />
-                  {language}
-                </span>
-              ))}
-              <span><i className="neutral" /> Next.js</span>
-              <span><i className="neutral" /> shadcn/ui</span>
-              <span><i className="neutral" /> Vercel</span>
-            </div>
-          </div>
-        </section>
-
-        <section className="story-chapter work-chapter" id="work" aria-labelledby="work-title">
-          <div className="chapter-tag"><span>03</span> THE TRAIL / PUBLIC WORK</div>
-          <div className="section-heading work-heading">
-            <div>
-              <p className="micro-label reveal">Milestones drawn from GitHub</p>
-              <h2 id="work-title" className="reveal">The experiments changed. The curiosity did not.</h2>
-            </div>
-            <p className="reveal">
-              This trail does not invent a résumé. It follows the public repository path — each
-              milestone links to its code, live deployment, and last active year. Click a glowing
-              orb in the 3D scene or an entry below.
-            </p>
-          </div>
-          <div className="work-timeline" role="list">
-            <div className="timeline-spine" aria-hidden="true" />
-            {chronological.map((project, index) => (
-              <article
-                key={project.name}
-                role="listitem"
-                className={selected?.name === project.name ? "work-entry active reveal is-visible" : "work-entry reveal"}
-              >
-                <button type="button" onClick={() => inspect(project)}>
-                  <span className="entry-year">{new Date(project.pushedAt).getFullYear()}</span>
-                  <i className="entry-node" aria-hidden="true" />
-                  <span className="entry-card">
-                    <span className="entry-kicker">MILESTONE {String(index + 1).padStart(2, "0")}</span>
-                    <strong>{project.name}</strong>
-                    <small>{project.description}</small>
-                    <span className="entry-footer">
-                      <b>{project.language ?? "Mixed stack"}</b>
-                      <em>{project.homepage ? "live + source" : "source available"}</em>
-                    </span>
-                  </span>
-                </button>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="story-chapter contact-chapter" id="contact" aria-labelledby="contact-title">
-          <div className="chapter-tag"><span>04</span> SUMMIT / NEXT DEPARTURE</div>
-          <div className="contact-grid">
-            <div>
-              <p className="micro-label reveal">The next useful experiment can start here.</p>
-              <h2 id="contact-title" className="reveal">What should we make less difficult?</h2>
-            </div>
-            <div className="contact-card reveal">
-              <p>
-                Explore the source, try the live projects, and open a conversation through
-                GitHub. I am interested in research-led products, thoughtful automation, and
-                tools that create tangible value.
-              </p>
-              <a href={portfolio.profileUrl} target="_blank" rel="noreferrer" className="primary-button">
-                Start on GitHub <ArrowIcon />
-              </a>
-            </div>
-          </div>
-          <footer>
-            <span>© {new Date().getFullYear()} {portfolio.login}</span>
-            <span>Procedural Three.js · public GitHub data · no portrait</span>
-          </footer>
-        </section>
+      <div className="corner-credit">
+        Three.js world · live GitHub data
       </div>
     </main>
   );
