@@ -254,73 +254,207 @@ function buildWalker() {
   const root = new THREE.Group();
   root.name = "ohaki-player";
 
-  const navy = new THREE.MeshStandardMaterial({ color: 0x17223a, roughness: 0.64 });
-  const dark = new THREE.MeshStandardMaterial({ color: 0x080d18, roughness: 0.72 });
-  const cyan = new THREE.MeshStandardMaterial({
+  // Procedural reconstruction of the generated Ohaki Explorer reference.
+  // It represents the owner's builder/explorer identity; the helmet deliberately avoids fabricated facial likeness.
+  const suit = new THREE.MeshPhysicalMaterial({ color: 0x203152, roughness: 0.68, clearcoat: 0.08 });
+  const armor = new THREE.MeshPhysicalMaterial({ color: 0x30476e, roughness: 0.43, clearcoat: 0.22 });
+  const rubber = new THREE.MeshStandardMaterial({ color: 0x080d18, roughness: 0.82 });
+  const coral = new THREE.MeshPhysicalMaterial({ color: 0xff806f, roughness: 0.46, clearcoat: 0.18 });
+  const amber = new THREE.MeshStandardMaterial({ color: 0xffcf82, roughness: 0.38, metalness: 0.12 });
+  const cyan = new THREE.MeshPhysicalMaterial({
     color: 0x62e3ff,
-    emissive: 0x62e3ff,
-    emissiveIntensity: 1.15,
-    roughness: 0.3,
+    emissive: 0x37bfd9,
+    emissiveIntensity: 1.9,
+    roughness: 0.18,
+    clearcoat: 0.7,
+    clearcoatRoughness: 0.12,
   });
 
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.32, 0.48, 6, 14), navy);
-  torso.position.y = 1.13;
-  root.add(torso);
+  const addRoundedBox = (
+    parent: THREE.Object3D,
+    size: [number, number, number],
+    position: [number, number, number],
+    material: THREE.Material,
+    bevel = 0.08,
+  ) => {
+    const shape = new THREE.Shape();
+    const width = size[0];
+    const height = size[1];
+    const radius = Math.min(bevel, width / 2, height / 2);
+    shape.moveTo(-width / 2 + radius, -height / 2);
+    shape.lineTo(width / 2 - radius, -height / 2);
+    shape.quadraticCurveTo(width / 2, -height / 2, width / 2, -height / 2 + radius);
+    shape.lineTo(width / 2, height / 2 - radius);
+    shape.quadraticCurveTo(width / 2, height / 2, width / 2 - radius, height / 2);
+    shape.lineTo(-width / 2 + radius, height / 2);
+    shape.quadraticCurveTo(-width / 2, height / 2, -width / 2, height / 2 - radius);
+    shape.lineTo(-width / 2, -height / 2 + radius);
+    shape.quadraticCurveTo(-width / 2, -height / 2, -width / 2 + radius, -height / 2);
+    const geometry = new THREE.ExtrudeGeometry(shape, {
+      depth: size[2],
+      bevelEnabled: true,
+      bevelSize: Math.min(radius * 0.28, size[2] * 0.18),
+      bevelThickness: Math.min(radius * 0.28, size[2] * 0.18),
+      bevelSegments: 2,
+    });
+    geometry.center();
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(...position);
+    parent.add(mesh);
+    return mesh;
+  };
 
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 16, 14), dark);
-  head.position.y = 1.83;
-  root.add(head);
+  const addRod = (
+    parent: THREE.Object3D,
+    from: THREE.Vector3,
+    to: THREE.Vector3,
+    radius: number,
+    material: THREE.Material,
+  ) => {
+    const direction = to.clone().sub(from);
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, direction.length(), 10), material);
+    mesh.position.copy(from).add(to).multiplyScalar(0.5);
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+    parent.add(mesh);
+    return mesh;
+  };
 
-  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.39, 0.12, 0.07), cyan);
-  visor.position.set(0, 1.84, -0.24);
-  root.add(visor);
+  const body = new THREE.Group();
+  body.name = "sculpt-body";
+  root.add(body);
 
-  const pack = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.56, 0.28), dark);
-  pack.position.set(0, 1.16, 0.32);
-  root.add(pack);
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.5, 8, 16), suit);
+  torso.scale.set(1, 1, 0.72);
+  torso.position.y = 1.14;
+  body.add(torso);
+  addRoundedBox(body, [0.58, 0.48, 0.13], [0, 1.2, -0.31], armor, 0.14);
 
-  const makeLimb = (x: number, y: number, radius: number) => {
+  const harness = new THREE.Group();
+  harness.name = "coral-x-harness";
+  const harnessFrontZ = -0.4;
+  addRod(harness, new THREE.Vector3(-0.22, 1.42, harnessFrontZ), new THREE.Vector3(0.19, 1.02, harnessFrontZ), 0.035, coral);
+  addRod(harness, new THREE.Vector3(0.22, 1.42, harnessFrontZ), new THREE.Vector3(-0.19, 1.02, harnessFrontZ), 0.035, coral);
+  const chestNode = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.045, 18), cyan);
+  chestNode.rotation.x = Math.PI / 2;
+  chestNode.position.set(0, 1.22, harnessFrontZ + 0.03);
+  harness.add(chestNode);
+  body.add(harness);
+
+  addRoundedBox(body, [0.66, 0.16, 0.4], [0, 0.84, 0], rubber, 0.07);
+  addRoundedBox(body, [0.16, 0.13, 0.12], [0, 0.85, -0.27], amber, 0.04);
+
+  const pack = addRoundedBox(body, [0.62, 0.64, 0.3], [0, 1.22, 0.34], rubber, 0.11);
+  pack.name = "technical-backpack";
+  addRoundedBox(body, [0.38, 0.13, 0.06], [0, 1.47, 0.51], cyan, 0.04);
+  for (const side of [-1, 1]) {
+    addRoundedBox(body, [0.15, 0.36, 0.25], [side * 0.38, 1.18, 0.31], rubber, 0.05);
+  }
+
+  const head = new THREE.Group();
+  head.name = "helmet-head";
+  head.position.y = 1.78;
+  body.add(head);
+  const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.31, 24, 18), rubber);
+  helmet.scale.z = 0.86;
+  head.add(helmet);
+  const helmetBand = new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.018, 6, 38), armor);
+  helmetBand.rotation.x = Math.PI / 2;
+  head.add(helmetBand);
+  addRoundedBox(head, [0.46, 0.15, 0.075], [0, 0, -0.27], cyan, 0.06);
+  addRoundedBox(head, [0.18, 0.035, 0.015], [-0.08, 0.035, -0.315], new THREE.MeshBasicMaterial({ color: 0xd8fbff }), 0.014);
+  for (const side of [-1, 1]) {
+    const pod = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.05, 16), armor);
+    pod.rotation.z = Math.PI / 2;
+    pod.position.x = side * 0.31;
+    head.add(pod);
+    const podLight = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.055, 12), coral);
+    podLight.rotation.z = Math.PI / 2;
+    podLight.position.x = side * 0.318;
+    head.add(podLight);
+  }
+
+  const makeArm = (side: number) => {
     const pivot = new THREE.Group();
-    pivot.position.set(x, y, 0);
-    const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(radius, 0.42, 4, 9), dark);
-    mesh.position.y = -0.28;
-    pivot.add(mesh);
-    root.add(pivot);
+    pivot.name = side < 0 ? "arm-left-pivot" : "arm-right-pivot";
+    pivot.position.set(side * 0.45, 1.43, 0);
+    const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 10), armor);
+    shoulder.scale.set(1.12, 0.82, 0.92);
+    pivot.add(shoulder);
+    const trim = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.026, 5, 20, Math.PI), coral);
+    trim.rotation.set(Math.PI / 2, 0, side < 0 ? 0 : Math.PI);
+    trim.position.y = 0.02;
+    pivot.add(trim);
+    const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.31, 5, 10), suit);
+    upper.position.y = -0.28;
+    pivot.add(upper);
+    const glove = new THREE.Mesh(new THREE.SphereGeometry(0.105, 12, 10), rubber);
+    glove.position.y = -0.58;
+    pivot.add(glove);
+    body.add(pivot);
     return pivot;
   };
 
-  const armL = makeLimb(-0.42, 1.43, 0.08);
-  const armR = makeLimb(0.42, 1.43, 0.08);
-  const legL = makeLimb(-0.16, 0.74, 0.1);
-  const legR = makeLimb(0.16, 0.74, 0.1);
+  const makeLeg = (side: number) => {
+    const pivot = new THREE.Group();
+    pivot.name = side < 0 ? "leg-left-pivot" : "leg-right-pivot";
+    pivot.position.set(side * 0.17, 0.77, 0);
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.42, 5, 12), suit);
+    leg.position.y = -0.33;
+    pivot.add(leg);
+    addRoundedBox(pivot, [0.22, 0.16, 0.2], [0, -0.38, -0.11], rubber, 0.05);
+    const boot = addRoundedBox(pivot, [0.27, 0.19, 0.39], [0, -0.72, -0.07], rubber, 0.06);
+    boot.name = side < 0 ? "boot-left" : "boot-right";
+    addRoundedBox(pivot, [0.23, 0.035, 0.04], [0, -0.66, -0.29], armor, 0.012);
+    body.add(pivot);
+    return pivot;
+  };
 
-  const lantern = new THREE.Mesh(
-    new THREE.SphereGeometry(0.09, 12, 10),
-    new THREE.MeshStandardMaterial({
-      color: 0xffcf82,
-      emissive: 0xffa746,
-      emissiveIntensity: 2.3,
-    }),
+  const armL = makeArm(-1);
+  const armR = makeArm(1);
+  const legL = makeLeg(-1);
+  const legR = makeLeg(1);
+
+  const lantern = new THREE.Group();
+  lantern.name = "locator-lantern";
+  lantern.position.set(0, -0.68, 0);
+  const lanternCage = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.022, 6, 24), amber);
+  lanternCage.rotation.x = Math.PI / 2;
+  lantern.add(lanternCage);
+  const lanternOrb = new THREE.Mesh(
+    new THREE.SphereGeometry(0.095, 16, 12),
+    new THREE.MeshStandardMaterial({ color: 0xffefbd, emissive: 0xffa746, emissiveIntensity: 3.4, roughness: 0.22 }),
   );
-  lantern.position.y = -0.55;
+  lantern.add(lanternOrb);
+  addRod(lantern, new THREE.Vector3(0, 0.1, 0), new THREE.Vector3(0, 0.25, 0), 0.015, amber);
   armR.add(lantern);
-  const lanternLight = new THREE.PointLight(0xffc36f, 13, 8, 1.8);
-  lanternLight.position.y = -0.55;
-  armR.add(lanternLight);
+  const lanternLight = new THREE.PointLight(0xffbd6d, 17, 9, 1.8);
+  lantern.add(lanternLight);
 
   const drone = new THREE.Group();
-  const droneCore = new THREE.Mesh(new THREE.OctahedronGeometry(0.13, 0), cyan);
+  drone.name = "companion-drone";
+  const droneCore = new THREE.Mesh(new THREE.OctahedronGeometry(0.15, 0), cyan);
+  droneCore.scale.y = 1.25;
   drone.add(droneCore);
   const droneRing = new THREE.Mesh(
-    new THREE.TorusGeometry(0.22, 0.014, 6, 32),
+    new THREE.TorusGeometry(0.25, 0.013, 6, 40),
     new THREE.MeshBasicMaterial({ color: 0x62e3ff }),
   );
   droneRing.rotation.x = Math.PI / 2;
   drone.add(droneRing);
-  drone.position.set(0.78, 2.05, 0.1);
+  const droneLight = new THREE.PointLight(0x62e3ff, 4.5, 4, 2);
+  drone.add(droneLight);
+  drone.position.set(0.82, 2.13, 0.05);
   root.add(drone);
 
-  return { root, head, armL, armR, legL, legR, drone, lanternLight };
+  root.userData.sculptRuntime = {
+    source: "img2threejs-stylized-reference",
+    approximation: "stylized representation; not facial likeness",
+    pivots: { head, armL, armR, legL, legR },
+    sockets: { rightHand: armR, backpack: pack, drone },
+    colliders: [torso, helmet],
+  };
+
+  return { root, body, head, armL, armR, legL, legR, drone, lanternLight };
 }
 
 function buildBasecamp() {
@@ -827,6 +961,7 @@ function GameWorld({
       walker.armR.rotation.x = swing * 0.48;
       walker.root.position.y = reduced ? 0 : Math.abs(Math.cos(walkPhase)) * 0.055 * energy;
       walker.head.rotation.y = moving ? 0 : Math.sin(time * 0.7) * 0.34;
+      walker.body.rotation.z = moving && !reduced ? 0.018 * Math.sin(walkPhase) : 0;
       walker.drone.position.y = 2.05 + (reduced ? 0 : Math.sin(time * 2) * 0.12);
       walker.drone.rotation.y = time * 0.9;
 
@@ -1018,6 +1153,7 @@ function ZoneCard({
 
 export function Journey({ portfolio }: { portfolio: GitHubPortfolio }) {
   const [started, setStarted] = useState(false);
+  const [avatarOpen, setAvatarOpen] = useState(false);
   const [zone, setZone] = useState(0);
   const [project, setProject] = useState<Project | null>(null);
   const projects = useMemo(
@@ -1044,6 +1180,29 @@ export function Journey({ portfolio }: { portfolio: GitHubPortfolio }) {
           <GitHubIcon />
         </a>
       </header>
+
+      <button
+        type="button"
+        className="avatar-badge"
+        aria-expanded={avatarOpen}
+        aria-controls="avatar-story"
+        onClick={() => setAvatarOpen((open) => !open)}
+      >
+        <span aria-hidden="true">3D</span>
+        <strong>OHKI EXPLORER</strong>
+      </button>
+
+      {avatarOpen && (
+        <aside className="avatar-story" id="avatar-story">
+          <button type="button" aria-label="Close avatar story" onClick={() => setAvatarOpen(false)}>×</button>
+          <p>YOUR PLAYABLE IDENTITY</p>
+          <h2>Builder. Researcher. Explorer.</h2>
+          <span>
+            A stylized avatar reconstructed with img2threejs: cyan visor, coral field harness,
+            locator lantern and companion drone. It represents the journey—not a fabricated face.
+          </span>
+        </aside>
+      )}
 
       {started && <ZoneCard zone={zone} portfolio={portfolio} projects={projects} />}
 
