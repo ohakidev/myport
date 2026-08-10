@@ -360,7 +360,7 @@ function buildWalker() {
   const helmetBand = new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.018, 6, 38), armor);
   helmetBand.rotation.x = Math.PI / 2;
   head.add(helmetBand);
-  addRoundedBox(head, [0.46, 0.15, 0.075], [0, 0, -0.27], cyan, 0.06);
+  const visor = addRoundedBox(head, [0.46, 0.15, 0.075], [0, 0, -0.27], cyan, 0.06);
   addRoundedBox(head, [0.18, 0.035, 0.015], [-0.08, 0.035, -0.315], new THREE.MeshBasicMaterial({ color: 0xd8fbff }), 0.014);
   for (const side of [-1, 1]) {
     const pod = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.05, 16), armor);
@@ -454,7 +454,7 @@ function buildWalker() {
     colliders: [torso, helmet],
   };
 
-  return { root, body, head, armL, armR, legL, legR, drone, lanternLight };
+  return { root, body, head, armL, armR, legL, legR, drone, lantern, lanternLight, visor, droneRing };
 }
 
 function buildBasecamp() {
@@ -953,17 +953,28 @@ function GameWorld({
       const pathCenter = pathX(travelZ);
       const closeToRoad = travelZ >= -4 && travelZ <= zoneEnds[3] + 8 && Math.abs(pathCenter - walker.root.position.x) < 7;
       if (closeToRoad) walker.root.position.x += (pathCenter - walker.root.position.x) * (moving ? 0.008 : 0.014);
-      const energy = moving ? 1 : 0.16;
-      const swing = reduced ? 0 : Math.sin(walkPhase) * 0.62 * energy;
+      const energy = moving ? 1 : 0.28;
+      const motion = reduced ? 0 : 1;
+      const swing = motion * Math.sin(walkPhase) * 0.82 * energy;
       walker.legL.rotation.x = swing;
       walker.legR.rotation.x = -swing;
-      walker.armL.rotation.x = -swing * 0.78;
-      walker.armR.rotation.x = swing * 0.48;
-      walker.root.position.y = reduced ? 0 : Math.abs(Math.cos(walkPhase)) * 0.055 * energy;
-      walker.head.rotation.y = moving ? 0 : Math.sin(time * 0.7) * 0.34;
-      walker.body.rotation.z = moving && !reduced ? 0.018 * Math.sin(walkPhase) : 0;
-      walker.drone.position.y = 2.05 + (reduced ? 0 : Math.sin(time * 2) * 0.12);
-      walker.drone.rotation.y = time * 0.9;
+      walker.armL.rotation.x = -swing * 0.88;
+      walker.armR.rotation.x = swing * 0.62;
+      walker.root.position.y = reduced ? 0 : Math.abs(Math.cos(walkPhase)) * 0.075 * energy;
+      walker.head.rotation.y = moving ? 0 : Math.sin(time * 0.72) * 0.34;
+      walker.head.rotation.z = moving ? 0 : Math.sin(time * 1.35) * 0.045;
+      walker.body.rotation.z = motion * Math.sin(walkPhase * 0.5) * 0.035 * energy;
+      walker.body.position.y = motion * Math.sin(time * 2.15) * 0.018 * energy;
+      walker.lantern.rotation.z = motion * Math.sin(time * (moving ? 8.5 : 2.8)) * (moving ? 0.18 : 0.1);
+      walker.lanternLight.intensity = 15 + Math.sin(time * 5.4) * 3.2;
+      (walker.visor.material as THREE.MeshPhysicalMaterial).emissiveIntensity = 1.55 + Math.sin(time * 3.6) * 0.45;
+      walker.drone.position.set(
+        0.82 + (reduced ? 0 : Math.cos(time * 1.7) * 0.12),
+        2.13 + (reduced ? 0 : Math.sin(time * 2.6) * 0.16),
+        0.05 + (reduced ? 0 : Math.sin(time * 1.7) * 0.1),
+      );
+      walker.drone.rotation.y = time * 1.35;
+      walker.droneRing.rotation.z = time * 2.1;
 
       const nextZone = travelZ < 23 ? 0 : travelZ < 59 ? 1 : travelZ < 96 ? 2 : 3;
       const forcedZone =
