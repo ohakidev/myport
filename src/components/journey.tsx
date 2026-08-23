@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 import * as THREE from "three";
 import AnimatedContent from "@/components/AnimatedContent";
+import Aurora from "@/components/Aurora";
 import BlurText from "@/components/BlurText";
 import ClickSpark from "@/components/ClickSpark";
 import SpotlightCard from "@/components/SpotlightCard";
@@ -291,6 +292,42 @@ function buildSeamPortal(x: number, accent: string) {
   return group;
 }
 
+function buildWorldParticles(worldLength: number) {
+  const count = 260;
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const color = new THREE.Color();
+  for (let index = 0; index < count; index += 1) {
+    positions[index * 3] = Math.random() * worldLength;
+    positions[index * 3 + 1] = 0.8 + Math.random() * 12;
+    positions[index * 3 + 2] = -3 - Math.random() * 11;
+    color.set(index % 3 === 0 ? "#ffd166" : index % 3 === 1 ? "#64e8ff" : "#fff8ea");
+    colors[index * 3] = color.r;
+    colors[index * 3 + 1] = color.g;
+    colors[index * 3 + 2] = color.b;
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  const material = new THREE.PointsMaterial({ size: 0.075, transparent: true, opacity: 0.6, vertexColors: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  const points = new THREE.Points(geometry, material);
+  points.name = "world-particles";
+  return points;
+}
+
+function buildSpeedStreaks() {
+  const group = new THREE.Group();
+  const material = new THREE.MeshBasicMaterial({ color: 0x64e8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+  for (let index = 0; index < 18; index += 1) {
+    const streak = new THREE.Mesh(new THREE.PlaneGeometry(1.2 + (index % 4) * 0.7, 0.018 + (index % 3) * 0.012), material.clone());
+    streak.position.set(-7 + (index % 9) * 1.8, 1.2 + (index % 6) * 1.35, -1.2 - (index % 4));
+    streak.userData.phase = index * 0.61;
+    group.add(streak);
+  }
+  group.name = "speed-streaks";
+  return group;
+}
+
 function buildWorld(projects: Project[]) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xdda878);
@@ -434,11 +471,16 @@ function GameWorld({
     const { scene, platforms, stations, far, mid, clouds, finish, seamPortal, worldLength } = buildWorld(projects);
     const explorer = buildExplorer();
     scene.add(explorer.root);
+    const particles = buildWorldParticles(worldLength);
+    const speedStreaks = buildSpeedStreaks();
+    scene.add(particles, speedStreaks);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
     renderer.setSize(mount.clientWidth, mount.clientHeight, false);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.domElement.setAttribute("aria-label", "Playable side-scrolling GitHub portfolio world");
@@ -468,6 +510,7 @@ function GameWorld({
     let loopCount = 0;
     let seamTransition = false;
     let seamUntil = 0;
+    let cameraKick = 0;
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const player = { x: 0, y: 0, vx: 0, vy: 0 };
 
@@ -556,7 +599,7 @@ function GameWorld({
       player.vx = THREE.MathUtils.damp(player.vx, targetVelocity, grounded ? 14 : 6, dt);
       if (Math.abs(input) > 0.01) facing = Math.sign(input);
 
-      if (jumpQueued && grounded) { player.vy = 10.5; grounded = false; }
+      if (jumpQueued && grounded) { player.vy = 10.5; grounded = false; cameraKick = 0.16; }
       jumpQueued = false;
       player.vy -= 25 * dt;
       const oldY = player.y;
@@ -566,7 +609,7 @@ function GameWorld({
       const landing = findLanding(oldY, nextY, collisionX);
       if (landing !== null) {
         nextY = landing;
-        if (!grounded && player.vy < -2.5) explorer.body.scale.y = 0.84;
+        if (!grounded && player.vy < -2.5) { explorer.body.scale.y = 0.84; cameraKick = Math.min(0.26, Math.abs(player.vy) * 0.018); }
         player.vy = 0;
         grounded = true;
         checkpointX = Math.max(checkpointX, nextX - 2);
@@ -591,28 +634,43 @@ function GameWorld({
       explorer.root.scale.x = THREE.MathUtils.damp(explorer.root.scale.x, facing, 15, dt);
       explorer.body.scale.y = THREE.MathUtils.damp(explorer.body.scale.y, 1, 9, dt);
       const speed = Math.min(1, Math.abs(player.vx) / 6);
-      const stride = Math.sin(elapsed * 13) * 0.72 * speed;
+      const runPhase = elapsed * (7 + speed * 9);
+      const stride = Math.sin(runPhase) * 0.72 * speed;
       explorer.legL.rotation.z = grounded ? stride : -0.35;
       explorer.legR.rotation.z = grounded ? -stride : 0.42;
       explorer.armL.rotation.z = grounded ? -stride * 0.7 : -0.55;
       explorer.armR.rotation.z = grounded ? stride * 0.55 : 0.5;
       explorer.body.rotation.z = THREE.MathUtils.damp(explorer.body.rotation.z, grounded ? -player.vx * 0.018 : -0.12 * facing, 8, dt);
-      explorer.body.position.y = grounded ? 1.1 + Math.abs(Math.sin(elapsed * 13)) * 0.07 * speed : 1.1;
+      explorer.body.position.y = THREE.MathUtils.damp(explorer.body.position.y, grounded ? 1.1 + Math.abs(Math.sin(runPhase)) * 0.085 * speed : 1.13, 13, dt);
       explorer.head.rotation.z = Math.sin(elapsed * 2.4) * 0.035;
       explorer.lantern.rotation.z = Math.sin(elapsed * 7) * 0.22;
       explorer.drone.position.y = 2.1 + Math.sin(elapsed * 3.2) * 0.18;
       explorer.drone.position.x = 0.95 - facing * speed * 0.15;
       explorer.droneRing.rotation.z += dt * 2.4;
 
-      const targetCameraX = player.x + facing * 2.7;
-      cameraX = THREE.MathUtils.damp(cameraX, targetCameraX, 4.8, dt);
-      const cameraY = THREE.MathUtils.damp(camera.position.y, 5.3 + Math.max(0, player.y) * 0.23, 5, dt);
-      camera.position.set(cameraX, cameraY, 22);
+      cameraKick = THREE.MathUtils.damp(cameraKick, 0, 7, dt);
+      const targetCameraX = player.x + facing * (2.2 + speed * 2.3);
+      cameraX = THREE.MathUtils.damp(cameraX, targetCameraX, 3.8 + speed * 2.2, dt);
+      const cameraY = THREE.MathUtils.damp(camera.position.y, 5.25 + Math.max(0, player.y) * 0.27, 4.5, dt);
+      const kickX = reduceMotion ? 0 : Math.sin(elapsed * 38) * cameraKick;
+      const kickY = reduceMotion ? 0 : Math.cos(elapsed * 31) * cameraKick * 0.55;
+      camera.position.set(cameraX + kickX, cameraY + kickY, 22);
       camera.lookAt(cameraX, cameraY - 2.1, 0);
       const wrapLayer = (value: number, factor: number) => -((((value * factor) % worldLength) + worldLength) % worldLength) + worldLength * 0.5;
       far.position.x = wrapLayer(cameraX, 0.16);
       mid.position.x = wrapLayer(cameraX, 0.35);
       clouds.position.x = wrapLayer(cameraX, 0.54) + Math.sin(elapsed * 0.08) * 2;
+      particles.position.x = -Math.floor(cameraX / worldLength) * worldLength;
+      particles.rotation.z = Math.sin(elapsed * 0.08) * 0.015;
+      const streakOpacity = reduceMotion ? 0 : THREE.MathUtils.smoothstep(speed, 0.35, 1) * 0.34;
+      speedStreaks.position.x = cameraX;
+      speedStreaks.children.forEach((child) => {
+        const streak = child as THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+        streak.position.x = ((streak.position.x - player.vx * dt * 1.9 + 13) % 26) - 13;
+        streak.position.y += Math.sin(elapsed * 1.4 + streak.userData.phase) * dt * 0.018;
+        streak.material.opacity = streakOpacity * (0.45 + Math.sin(elapsed * 2.2 + streak.userData.phase) * 0.2);
+        streak.scale.x = 0.8 + speed * 2.4;
+      });
 
       stations.forEach(({ group }, index) => {
         const runtime = group.userData.runtime;
@@ -747,6 +805,8 @@ function Intro({ start }: { start: () => void }) {
   }, []);
   return (
     <section className="game-intro" ref={ref} aria-label="Start portfolio experience">
+      <div className="intro-aurora" aria-hidden="true"><Aurora colorStops={["#ff7a75", "#64e8ff", "#ffd166"]} amplitude={1.15} blend={0.62} speed={0.34} /></div>
+      <div className="intro-vignette" aria-hidden="true" />
       <div className="intro-orbit" aria-hidden="true"><span /><span /><span /></div>
       <div className="intro-gridline" aria-hidden="true" />
       <div className="intro-copyblock">
@@ -860,22 +920,27 @@ export function Journey({ portfolio }: { portfolio: GitHubPortfolio }) {
     const context = gsap.context(() => {
       if (reduce) return;
       gsap.timeline({
-        defaults: { ease: "power3.inOut" },
+        defaults: { ease: "expo.inOut" },
         onStart: () => setTransitioning(true),
         onComplete: () => setTransitioning(false),
       })
-        .set(".chapter-wipe", { transformOrigin: "left center" })
-        .fromTo(".chapter-wipe", { scaleX: 0 }, { scaleX: 1, duration: 0.28 })
+        .set(".chapter-wipe", { transformOrigin: "left center", skewX: -8 })
+        .fromTo(".chapter-wipe", { scaleX: 0, autoAlpha: 0 }, { scaleX: 1, autoAlpha: 0.68, duration: 0.34 })
         .set(".chapter-wipe", { transformOrigin: "right center" })
-        .to(".chapter-wipe", { scaleX: 0, duration: 0.42 })
-        .fromTo(".chapter-story", { y: 22, opacity: 0 }, { y: 0, opacity: 1, duration: 0.48 }, "-=.25");
+        .to(".chapter-wipe", { scaleX: 0, autoAlpha: 0, skewX: 8, duration: 0.48 })
+        .fromTo(".chapter-story", { x: -44, y: 10, autoAlpha: 0, scale: 0.96 }, { x: 0, y: 0, autoAlpha: 1, scale: 1, duration: 0.58, ease: "power4.out" }, "-=.32");
     }, shellRef);
     return () => context.revert();
   }, [chapter, started]);
 
   const start = () => {
     const intro = shellRef.current?.querySelector(".game-intro");
-    if (intro && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) gsap.to(intro, { yPercent: -105, duration: 0.75, ease: "power4.inOut", onComplete: () => setStarted(true) });
+    if (intro && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      gsap.timeline({ onComplete: () => setStarted(true) })
+        .to(".intro-copyblock, .intro-map, .intro-note", { x: -80, autoAlpha: 0, stagger: 0.025, duration: 0.34, ease: "power3.in" })
+        .to(".intro-aurora", { scale: 1.35, autoAlpha: 0, duration: 0.56, ease: "power2.in" }, "-=.3")
+        .to(intro, { clipPath: "inset(0 0 100% 0)", duration: 0.82, ease: "expo.inOut" }, "-=.5");
+    }
     else setStarted(true);
   };
   const travelTo = (index: number) => {
@@ -892,9 +957,9 @@ export function Journey({ portfolio }: { portfolio: GitHubPortfolio }) {
     const context = gsap.context(() => {
       gsap.timeline({ defaults: { ease: "expo.inOut" } })
         .set(".loop-seam-flash", { transformOrigin: direction > 0 ? "right center" : "left center" })
-        .fromTo(".loop-seam-flash", { scaleX: 0, autoAlpha: 0 }, { scaleX: 1, autoAlpha: 0.55, duration: 0.22 })
-        .to(".loop-seam-flash", { scaleX: 0, autoAlpha: 0, duration: 0.5 })
-        .fromTo(".loop-toast", { y: 24, autoAlpha: 0, scale: 0.92 }, { y: 0, autoAlpha: 1, scale: 1, duration: 0.38 }, "-=.45")
+        .fromTo(".loop-seam-flash", { scaleX: 0, scaleY: 0.78, autoAlpha: 0 }, { scaleX: 1, scaleY: 1, autoAlpha: 0.7, duration: 0.28 })
+        .to(".loop-seam-flash", { scaleX: 0, scaleY: 1.15, autoAlpha: 0, duration: 0.58 })
+        .fromTo(".loop-toast", { y: 28, rotation: -2, autoAlpha: 0, scale: 0.88 }, { y: 0, rotation: 0, autoAlpha: 1, scale: 1, duration: 0.42, ease: "back.out(1.5)" }, "-=.5")
         .to(".loop-toast", { y: -16, autoAlpha: 0, duration: 0.28 }, "+=.16");
     }, shellRef);
     window.setTimeout(() => context.revert(), 1100);
