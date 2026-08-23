@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ohakidev — Side Quest Portfolio",
+  title: "ohakidev — Infinite Side Quest Portfolio",
   description:
-    "Run, jump and explore the public GitHub journey of ohakidev in a playable Three.js side-scrolling world.",
+    "Run, jump and loop forever through the public GitHub journey of ohakidev in a playable Three.js world.",
   metadataBase: new URL("https://github.com/ohakidev"),
   openGraph: {
-    title: "ohakidev — Side Quest Portfolio",
-    description: "Public GitHub experiments told as a playable side-scrolling Three.js journey.",
+    title: "ohakidev — Infinite Side Quest Portfolio",
+    description: "Public GitHub experiments told as a seamless, infinitely looping Three.js journey.",
     type: "website",
   },
 };
