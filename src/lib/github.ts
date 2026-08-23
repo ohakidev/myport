@@ -6,6 +6,7 @@ export type Project = {
   language: string | null;
   stars: number;
   forks: number;
+  createdAt: string;
   pushedAt: string;
   topics: string[];
 };
@@ -44,6 +45,7 @@ type GitHubRepo = {
   language: string | null;
   stargazers_count: number;
   forks_count: number;
+  created_at: string;
   pushed_at: string;
   topics?: string[];
   fork: boolean;
@@ -69,6 +71,7 @@ const fallback: GitHubPortfolio = {
       language: "TypeScript",
       stars: 1,
       forks: 0,
+      createdAt: "2025-10-11T22:22:14Z",
       pushedAt: "2026-07-18T00:00:50Z",
       topics: [],
     },
@@ -80,6 +83,7 @@ const fallback: GitHubPortfolio = {
       language: "TypeScript",
       stars: 0,
       forks: 0,
+      createdAt: "2025-03-17T23:06:04Z",
       pushedAt: "2025-08-12T14:10:37Z",
       topics: [],
     },
@@ -91,6 +95,7 @@ const fallback: GitHubPortfolio = {
       language: "TypeScript",
       stars: 0,
       forks: 0,
+      createdAt: "2023-07-10T20:52:04Z",
       pushedAt: "2024-10-30T13:47:32Z",
       topics: [],
     },
@@ -102,6 +107,7 @@ const fallback: GitHubPortfolio = {
       language: "JavaScript",
       stars: 0,
       forks: 0,
+      createdAt: "2022-07-27T10:29:13Z",
       pushedAt: "2023-01-25T19:07:14Z",
       topics: [],
     },
@@ -111,20 +117,22 @@ const fallback: GitHubPortfolio = {
       url: "https://github.com/ohakidev/dvechontech",
       homepage: null,
       language: null,
-      stars: 1,
+      stars: 0,
       forks: 0,
+      createdAt: "2021-01-17T15:56:08Z",
       pushedAt: "2021-01-17T17:03:20Z",
       topics: [],
     },
     {
-      name: "marketflip",
-      description: "A modern full-stack e-commerce marketplace for digital products.",
-      url: "https://github.com/ohakidev/marketflip",
+      name: "myport",
+      description: "3D storytelling portfolio — live GitHub data as a living research world.",
+      url: "https://github.com/ohakidev/myport",
       homepage: null,
-      language: null,
-      stars: 1,
+      language: "TypeScript",
+      stars: 0,
       forks: 0,
-      pushedAt: "2024-06-08T14:49:37Z",
+      createdAt: "2026-08-09T19:58:06Z",
+      pushedAt: "2026-08-10T18:41:45Z",
       topics: [],
     },
   ],
@@ -168,6 +176,7 @@ export async function getGitHubPortfolio(): Promise<GitHubPortfolio> {
         language: repo.language,
         stars: repo.stargazers_count,
         forks: repo.forks_count,
+        createdAt: repo.created_at,
         pushedAt: repo.pushed_at,
         topics: repo.topics ?? [],
       }));
