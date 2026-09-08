@@ -57,10 +57,10 @@ export function ChapterStory({ chapter, project }: { chapter: number; project: P
   ][Math.min(chapter, 5)] as [string, string, string];
 
   return (
-    <aside key={chapter} className="pointer-events-none fixed left-4 top-1/2 z-30 w-[min(21rem,calc(100vw-2rem))] -translate-y-1/2 sm:left-6">
-      <div className="glass-panel rounded-2xl p-5 pl-6 [border-left:3px_solid_var(--cyan)]">
+    <aside key={chapter} className="pointer-events-none fixed left-4 top-20 z-30 w-[min(21rem,calc(100vw-2rem))] md:top-1/2 md:-translate-y-1/2 sm:left-6">
+      <div className="glass-panel rounded-2xl p-3 pl-4 md:p-5 md:pl-6 [border-left:3px_solid_var(--cyan)]">
         <span className="hud-label">{stories[0]}</span>
-        <h2 className="mt-1.5 text-2xl font-extrabold tracking-tight text-wrap-balance">{project?.name ?? stories[1]}</h2>
+        <h2 className="mt-1.5 break-words text-lg font-extrabold tracking-tight text-wrap-balance md:text-2xl">{project?.name ?? stories[1]}</h2>
         <p className="mt-1 hidden text-sm leading-relaxed text-muted-foreground md:block">{project?.description ?? stories[2]}</p>
       </div>
     </aside>

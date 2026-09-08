@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import type { Project } from "@/lib/github";
 import { chapterColors, chapterNames } from "@/components/journey/palette";
 
@@ -40,16 +41,35 @@ function addBox(
   return mesh;
 }
 
+function sculpt(
+  parent: THREE.Object3D,
+  geometry: THREE.BufferGeometry,
+  material: THREE.Material,
+  position: [number, number, number],
+  scale: [number, number, number] = [1, 1, 1],
+) {
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(...position);
+  mesh.scale.set(...scale);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  parent.add(mesh);
+  return mesh;
+}
+
 function makeLabel(title: string, subtitle: string, accent: string, width = 1024) {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = 320;
   const context = canvas.getContext("2d")!;
-  context.fillStyle = "rgba(7, 15, 27, .92)";
+  context.fillStyle = "rgba(12, 34, 42, .88)";
   context.fillRect(18, 18, width - 36, 284);
   context.strokeStyle = accent;
-  context.lineWidth = 8;
-  context.strokeRect(18, 18, width - 36, 284);
+  context.lineWidth = 4;
+  context.beginPath();
+  context.moveTo(64, 302);
+  context.lineTo(width - 64, 302);
+  context.stroke();
   context.fillStyle = accent;
   context.font = "700 42px monospace";
   context.textAlign = "left";
@@ -64,7 +84,7 @@ function makeLabel(title: string, subtitle: string, accent: string, width = 1024
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.minFilter = THREE.LinearFilter;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
-  sprite.scale.set(7.7, 2.4, 1);
+  sprite.scale.set(5.7, 1.78, 1);
   sprite.userData.texture = texture;
   return sprite;
 }
@@ -90,19 +110,47 @@ function makeCloud(scale: number, color: number) {
 function buildExplorer() {
   const root = new THREE.Group();
   root.name = "ohaki-explorer";
-  const navy = new THREE.MeshStandardMaterial({ color: 0x20355d, roughness: 0.62 });
+  const navy = new THREE.MeshStandardMaterial({ color: 0x235c62, roughness: 0.72, metalness: 0.08 });
   const dark = new THREE.MeshStandardMaterial({ color: 0x08111f, roughness: 0.75 });
   const coral = new THREE.MeshStandardMaterial({ color: 0xff715f, roughness: 0.44 });
   const cyan = new THREE.MeshStandardMaterial({ color: 0x64e8ff, emissive: 0x2abbd2, emissiveIntensity: 2.1, roughness: 0.18 });
   const amber = new THREE.MeshStandardMaterial({ color: 0xffd166, emissive: 0xc57a18, emissiveIntensity: 1.5 });
 
   const body = new THREE.Group();
-  body.position.y = 1.1;
+  body.position.y = 1.35;
   root.add(body);
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.62, 7, 14), navy);
-  torso.scale.z = 0.72;
-  body.add(torso);
-  addBox(body, [0.62, 0.4, 0.16], [0, 0.02, 0.36], dark);
+  // Tailored silhouette rather than stacked capsules: flared expedition coat.
+  const coatProfile = [[0.43, -0.55], [0.46, -0.48], [0.32, -0.12], [0.36, 0.27], [0.29, 0.43], [0.18, 0.47]];
+  sculpt(body, new THREE.LatheGeometry(coatProfile.map(([r, y]) => new THREE.Vector2(r, y)), 24), navy, [0, 0, 0], [1, 1, 0.8]);
+  const ivory = new THREE.MeshStandardMaterial({ color: 0xe8ddc5, roughness: 0.4, metalness: 0.22 });
+  const brass = new THREE.MeshStandardMaterial({ color: 0xcba66d, roughness: 0.3, metalness: 0.65 });
+  const fabric = new THREE.MeshStandardMaterial({ color: 0xc45239, roughness: 1, side: THREE.DoubleSide });
+  const collar = sculpt(body, new THREE.TorusGeometry(0.24, 0.095, 8, 24), fabric, [0, 0.49, 0]);
+  collar.rotation.x = Math.PI / 2;
+  const scarf = new THREE.Group();
+  scarf.position.set(0, 0.46, -0.2);
+  const scarfGeometry = new THREE.PlaneGeometry(0.29, 1.12, 4, 18);
+  scarfGeometry.translate(0, -0.56, 0);
+  const scarfRest = Float32Array.from(scarfGeometry.attributes.position.array);
+  sculpt(scarf, scarfGeometry, fabric, [0, 0, 0]);
+  body.add(scarf);
+  const breastplate = new THREE.Mesh(new THREE.SphereGeometry(0.35, 20, 12), ivory);
+  breastplate.scale.set(1, 0.8, 0.35);
+  breastplate.position.set(0, 0.12, 0.29);
+  body.add(breastplate);
+  const backpack = addBox(body, [0.56, 0.66, 0.3], [0, 0.05, -0.38], dark);
+  addBox(backpack, [0.36, 0.06, 0.035], [0, 0.18, -0.17], amber);
+  for (const side of [-1, 1]) {
+    const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 8), ivory);
+    shoulder.position.set(side * 0.44, 0.36, 0);
+    body.add(shoulder);
+  }
+  const clasp = sculpt(body, new THREE.CylinderGeometry(0.085, 0.085, 0.035, 16), brass, [0, 0.17, 0.4]);
+  clasp.rotation.x = Math.PI / 2;
+  for (const side of [-1, 1]) {
+    addBox(body, [0.055, 0.57, 0.03], [side * 0.23, -0.06, 0.31], brass);
+    sculpt(backpack, new THREE.CylinderGeometry(0.11, 0.11, 0.57, 12), ivory, [side * 0.36, 0, 0]);
+  }
   const harnessA = addBox(body, [0.08, 0.74, 0.07], [0, 0.02, -0.39], coral);
   harnessA.rotation.z = 0.72;
   const harnessB = addBox(body, [0.08, 0.74, 0.07], [0, 0.02, -0.4], coral);
@@ -111,15 +159,21 @@ function buildExplorer() {
   const head = new THREE.Group();
   head.position.y = 0.84;
   body.add(head);
-  const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.36, 20, 15), dark);
-  helmet.scale.z = 0.85;
+  const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.47, 32, 24), ivory);
+  helmet.scale.set(1, 0.94, 0.92);
   head.add(helmet);
-  const visor = addBox(head, [0.52, 0.17, 0.08], [0, 0, 0.32], cyan);
-  visor.rotation.x = -0.04;
+  const visorMaterial = new THREE.MeshPhysicalMaterial({color: 0x102c39, metalness: 0.5, roughness: 0.14, clearcoat: 1});
+  sculpt(head, new THREE.SphereGeometry(0.4, 32, 16), visorMaterial, [0, -0.01, 0.23], [1, 0.62, 0.64]);
+  for (const side of [-1, 1]) {
+    sculpt(head, new THREE.SphereGeometry(0.055, 12, 8), cyan, [side * 0.14, -0.025, 0.478], [0.65, 1, 0.4]);
+  }
+  sculpt(head, new THREE.SphereGeometry(0.15, 16, 10), ivory, [-0.17, 0.17, 0.41], [1, 0.16, 0.15]);
+  const helmetBand = sculpt(head, new THREE.TorusGeometry(0.445, 0.022, 8, 40), brass, [0, 0.1, 0]);
+  helmetBand.rotation.x = Math.PI / 2;
   for (const side of [-1, 1]) {
     const pod = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.06, 12), coral);
     pod.rotation.z = Math.PI / 2;
-    pod.position.x = side * 0.35;
+    pod.position.x = side * 0.46;
     head.add(pod);
   }
 
@@ -127,32 +181,48 @@ function buildExplorer() {
   const armR = new THREE.Group();
   const legL = new THREE.Group();
   const legR = new THREE.Group();
+  const elbows: THREE.Group[] = [];
+  const knees: THREE.Group[] = [];
   [armL, armR].forEach((arm, index) => {
     arm.position.set(index ? 0.46 : -0.46, 0.34, 0);
-    const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.48, 5, 10), navy);
-    upper.position.y = -0.35;
+    const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.105, 0.2, 5, 10), navy);
+    upper.position.y = -0.2;
     arm.add(upper);
+    const elbow = new THREE.Group();
+    elbow.position.y = -0.38;
+    arm.add(elbow);
+    const forearm = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.18, 5, 10), ivory);
+    forearm.position.y = -0.16;
+    elbow.add(forearm);
     const glove = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 9), dark);
-    glove.position.y = -0.7;
-    arm.add(glove);
+    glove.position.y = -0.35;
+    elbow.add(glove);
+    elbows.push(elbow);
     body.add(arm);
   });
   [legL, legR].forEach((leg, index) => {
-    leg.position.set(index ? 0.2 : -0.2, 0.76, 0);
-    const shin = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.54, 5, 10), navy);
-    shin.position.y = -0.4;
-    leg.add(shin);
-    addBox(leg, [0.3, 0.22, 0.46], [0.08, -0.82, 0.08], dark);
+    leg.position.set(index ? 0.2 : -0.2, 0.98, 0);
+    const thigh = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, 0.23, 5, 10), navy);
+    thigh.position.y = -0.22;
+    leg.add(thigh);
+    const knee = new THREE.Group();
+    knee.position.y = -0.44;
+    leg.add(knee);
+    const shin = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.23, 5, 10), ivory);
+    shin.position.y = -0.2;
+    knee.add(shin);
+    addBox(knee, [0.28, 0.2, 0.43], [0, -0.43, 0.1], dark);
+    knees.push(knee);
     root.add(leg);
   });
 
   const lantern = new THREE.Group();
-  lantern.position.set(0, -0.82, 0);
+  lantern.position.set(0, -0.46, 0);
   lantern.add(new THREE.Mesh(new THREE.OctahedronGeometry(0.12, 0), amber));
   const lanternRing = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.025, 6, 20), amber);
   lanternRing.rotation.x = Math.PI / 2;
   lantern.add(lanternRing);
-  armR.add(lantern);
+  elbows[1].add(lantern);
 
   const drone = new THREE.Group();
   drone.position.set(0.95, 2.1, 0);
@@ -162,72 +232,136 @@ function buildExplorer() {
   drone.add(droneRing);
   root.add(drone);
 
-  root.userData.source = "img2threejs procedural reconstruction";
+  root.traverse((object) => {
+    if (object instanceof THREE.Mesh) { object.castShadow = true; object.receiveShadow = true; }
+  });
+  root.userData.source = "procedural expedition explorer";
   root.userData.identity = "stylized builder/explorer; not a facial likeness";
-  return { root, body, head, armL, armR, legL, legR, lantern, drone, droneRing };
+  return { root, body, head, scarf, scarfGeometry, scarfRest, armL, armR, legL, legR, elbows, knees, lantern, drone, droneRing };
 }
 
 type Platform = { min: number; max: number; top: number };
 
 function buildPlatform(scene: THREE.Scene, min: number, max: number, top: number, accent: string) {
   const width = max - min;
-  const earth = new THREE.MeshStandardMaterial({ color: 0x18273a, roughness: 0.9 });
+  const earth = new THREE.MeshStandardMaterial({ color: 0x3e4b50, roughness: 0.95 });
   const edge = new THREE.MeshStandardMaterial({ color: new THREE.Color(accent), emissive: new THREE.Color(accent), emissiveIntensity: 0.36, roughness: 0.5 });
   addBox(scene, [width, 1.2, 5.5], [(min + max) / 2, top - 0.6, 0], earth);
-  addBox(scene, [width, 0.16, 5.7], [(min + max) / 2, top + 0.05, 0], edge);
-  const supports = Math.max(2, Math.floor(width / 6));
+  const paving = new THREE.MeshStandardMaterial({ color: 0x9b9b83, roughness: 0.92 });
+  addBox(scene, [width, 0.16, 5.7], [(min + max) / 2, top - 0.02, 0], paving);
+  addBox(scene, [width, 0.045, 0.06], [(min + max) / 2, top - 0.28, 2.78], edge);
+  const supports = Math.max(2, Math.floor(width / 5));
   for (let i = 0; i < supports; i += 1) {
     const x = min + 2 + (i / Math.max(1, supports - 1)) * Math.max(0, width - 4);
-    const beam = addBox(scene, [0.18, 2.8, 0.18], [x, top - 2, 2.45], edge);
-    beam.rotation.z = i % 2 ? 0.12 : -0.12;
+    const crag = sculpt(scene, new THREE.ConeGeometry(1.8, 3 + i % 2, 5), earth, [x, top - 2, 0], [1.5, 1, 1.5]);
+    crag.rotation.z = Math.PI;
+    crag.rotation.y = i * 0.7;
+  }
+  // Set dressing stays behind the playable lane; collision remains unchanged.
+  const stone = new THREE.MeshStandardMaterial({ color: 0x697477, roughness: 1, flatShading: true });
+  const foliage = new THREE.MeshStandardMaterial({ color: 0x548878, roughness: 0.95, flatShading: true });
+  for (let i = 0; i < 3; i += 1) {
+    const x = min + 1.4 + i * (width - 2.8) / 2;
+    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.34 + i * 0.07, 0), stone);
+    rock.position.set(x, top + 0.22, -2);
+    rock.scale.set(1.5, 0.7, 1);
+    rock.rotation.y = x * 0.7;
+    rock.castShadow = true;
+    scene.add(rock);
+    const shrub = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 1), foliage);
+    shrub.position.set(x + 0.65, top + 0.36, -2.1);
+    shrub.scale.set(0.75, 1 + i * 0.2, 0.8);
+    shrub.castShadow = true;
+    scene.add(shrub);
+  }
+  if (width > 15) {
+    const trunk = new THREE.MeshStandardMaterial({ color: 0x544d48, roughness: 1 });
+    const leaves = new THREE.MeshStandardMaterial({ color: new THREE.Color(accent).lerp(new THREE.Color(0xd99475), 0.72), roughness: 1, flatShading: true });
+    const tree = new THREE.Group();
+    tree.position.set(min + 3, top, -2.1);
+    sculpt(tree, new THREE.CylinderGeometry(0.1, 0.24, 2.6, 7), trunk, [0, 1.3, 0]);
+    for (let branch = 0; branch < 4; branch += 1) {
+      const angle = branch * 2.4;
+      const limb = sculpt(tree, new THREE.CylinderGeometry(0.045, 0.1, 1.15, 6), trunk, [Math.cos(angle) * 0.35, 1.8 + branch * 0.18, Math.sin(angle) * 0.3]);
+      limb.rotation.z = Math.cos(angle) * 0.6;
+      sculpt(tree, new THREE.IcosahedronGeometry(0.9, 1), leaves, [Math.cos(angle) * 0.7, 2.55 + branch * 0.17, Math.sin(angle) * 0.55], [1.25, 0.64, 1]);
+    }
+    scene.add(tree);
   }
 }
 
 function buildProjectStation(project: Project, index: number, x: number, top: number, accent: string) {
   const group = new THREE.Group();
-  group.position.set(x, top, 0);
+  group.position.set(x, top, -1.6);
   group.name = `repo-${project.name}`;
   const accentColor = new THREE.Color(accent);
   const metal = new THREE.MeshStandardMaterial({ color: 0x243750, metalness: 0.25, roughness: 0.52 });
   const glow = new THREE.MeshStandardMaterial({ color: accentColor, emissive: accentColor, emissiveIntensity: 1.45, roughness: 0.26 });
   const glass = new THREE.MeshPhysicalMaterial({ color: accentColor, transparent: true, opacity: 0.27, roughness: 0.1, transmission: 0.18, emissive: accentColor, emissiveIntensity: 0.2 });
 
-  const legs = [-1, 1].map((side) => addBox(group, [0.25, 3.4, 0.25], [side * 1.65, 1.7, 0], metal));
-  const screen = addBox(group, [3.7, 2.25, 0.28], [0, 3.1, 0], metal);
-  const core = addBox(group, [3.2, 1.72, 0.12], [0, 3.1, 0.24], glass);
-  const pulse = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.055, 8, 40), glow);
-  pulse.position.set(0, 3.1, 0.38);
-  group.add(pulse);
-  const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.075, 1.25, 8), metal);
-  antenna.position.set(1.28, 4.85, 0);
-  group.add(antenna);
-  const signal = new THREE.Mesh(new THREE.OctahedronGeometry(0.17, 0), glow);
-  signal.position.set(1.28, 5.52, 0);
-  group.add(signal);
-
-  if (index % 3 === 0) {
-    const dish = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.78, 0.25, 24), metal);
-    dish.rotation.x = Math.PI / 2;
-    dish.rotation.z = -0.28;
-    dish.position.set(-1.35, 5.15, 0);
-    group.add(dish);
-  } else if (index % 3 === 1) {
-    for (const side of [-1, 1]) {
-      const orb = new THREE.Mesh(new THREE.IcosahedronGeometry(0.32, 1), glow);
-      orb.position.set(side * 1.35, 4.65, 0);
-      group.add(orb);
+  const porcelain = new THREE.MeshStandardMaterial({ color: 0xd6cfb4, roughness: 0.65 });
+  const brass = new THREE.MeshStandardMaterial({ color: 0xb88c4f, metalness: 0.55, roughness: 0.36 });
+  sculpt(group, new THREE.CylinderGeometry(2.05, 2.35, 0.32, 12), metal, [0, 0.16, 0]);
+  sculpt(group, new THREE.CylinderGeometry(1.8, 2.05, 0.18, 12), porcelain, [0, 0.4, 0]);
+  const core = sculpt(group, new THREE.IcosahedronGeometry(0.55, 1), glass, [0, 2.7, 0]);
+  const pulse = sculpt(group, new THREE.TorusGeometry(1, 0.035, 8, 56, Math.PI * 1.8), brass, [0, 2.7, 0]);
+  const signal = sculpt(group, new THREE.OctahedronGeometry(0.13, 0), glow, [0, 4.85, 0]);
+  // Six authored silhouettes, one interaction contract and palette.
+  switch (index % 6) {
+    case 0: { // Observatory: nested armillary rings and telescope.
+      for (let ring = 0; ring < 3; ring += 1) {
+        const orbit = sculpt(group, new THREE.TorusGeometry(1.5 + ring * 0.12, 0.075, 8, 48), ring === 1 ? porcelain : brass, [0, 2.5, 0]);
+        orbit.rotation.set(ring * 0.7, ring * 0.9, 0.3);
+      }
+      const telescope = sculpt(group, new THREE.CylinderGeometry(0.32, 0.46, 2.7, 24), porcelain, [0, 2.5, 0]);
+      telescope.rotation.z = -0.8;
+      break;
     }
-  } else {
-    const arch = new THREE.Mesh(new THREE.TorusGeometry(1.25, 0.12, 8, 32, Math.PI), glow);
-    arch.position.y = 4.65;
-    group.add(arch);
+    case 1: { // Campus archive: a small colonnade with a pitched roof.
+      for (const x of [-1.5, -0.5, 0.5, 1.5]) sculpt(group, new THREE.CylinderGeometry(0.14, 0.2, 2.8, 12), porcelain, [x, 1.9, -0.35]);
+      const roof = sculpt(group, new THREE.ConeGeometry(2.45, 1.1, 4), metal, [0, 3.85, 0], [1, 1, 0.72]);
+      roof.rotation.y = Math.PI / 4;
+      addBox(group, [3.8, 0.25, 1.8], [0, 3.25, 0], brass);
+      break;
+    }
+    case 2: { // Connected systems: suspended terraces and bridges.
+      for (let tower = 0; tower < 3; tower += 1) {
+        const x = (tower - 1) * 1.3;
+        const height = 2.1 + (tower % 2) * 1.2;
+        sculpt(group, new THREE.CylinderGeometry(0.4, 0.62, height, 6), porcelain, [x, height / 2 + 0.5, 0]);
+        sculpt(group, new THREE.CylinderGeometry(0.65, 0.65, 0.13, 6), brass, [x, height + 0.5, 0]);
+      }
+      addBox(group, [3.4, 0.16, 0.5], [0, 2.2, 0.4], metal);
+      break;
+    }
+    case 3: { // Observatory network: a faceted geodesic dome.
+      const dome = sculpt(group, new THREE.IcosahedronGeometry(1.8, 1), glass, [0, 2.2, 0]);
+      const frame = new THREE.LineSegments(new THREE.EdgesGeometry(dome.geometry), new THREE.LineBasicMaterial({color: 0xcba66d}));
+      dome.add(frame);
+      for (const x of [-1.6, 1.6]) sculpt(group, new THREE.CylinderGeometry(0.09, 0.15, 3.8, 8), porcelain, [x, 2.3, 0]);
+      break;
+    }
+    case 4: { // Signal exchange: a stepped brass transmission spire.
+      for (let level = 0; level < 5; level += 1) {
+        const radius = 1.55 - level * 0.25;
+        sculpt(group, new THREE.CylinderGeometry(radius * 0.75, radius, 0.58, 8), level % 2 ? brass : porcelain, [0, 0.85 + level * 0.7, 0]);
+      }
+      break;
+    }
+    default: { // Portfolio atelier: an open arched gateway.
+      const arch = sculpt(group, new THREE.TorusGeometry(1.65, 0.22, 12, 48, Math.PI), porcelain, [0, 2.5, 0]);
+      arch.rotation.z = 0;
+      for (const x of [-1.65, 1.65]) sculpt(group, new THREE.CylinderGeometry(0.22, 0.32, 2.1, 12), porcelain, [x, 1.5, 0]);
+      const inner = sculpt(group, new THREE.TorusGeometry(1.3, 0.04, 8, 48), glow, [0, 2.35, 0]);
+      inner.rotation.y = 0.3;
+    }
   }
 
   const year = new Date(project.createdAt).getFullYear();
   const label = makeLabel(project.name, `${year} / ${project.language ?? "EXPERIMENT"}`, accent);
-  label.position.set(0, 6.65, 0);
+  label.position.set(0, 6.25, 0);
   group.add(label);
-  [screen, core, pulse, signal, ...legs].forEach((item) => { item.userData.projectIndex = index; });
+  group.traverse((item) => { if (item instanceof THREE.Mesh) item.userData.projectIndex = index; });
   group.userData.runtime = { pulse, signal, core, label, baseY: label.position.y };
   return group;
 }
@@ -301,18 +435,37 @@ function buildSpeedStreaks() {
 
 function buildWorld(projects: Project[]) {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xdda878);
-  scene.fog = new THREE.Fog(0xdda878, 28, 72);
-  scene.add(new THREE.HemisphereLight(0xffedd3, 0x17273e, 3.2));
-  const sun = new THREE.DirectionalLight(0xffe4b2, 4.6);
+  const skyCanvas = document.createElement("canvas");
+  skyCanvas.width = 2;
+  skyCanvas.height = 512;
+  const skyContext = skyCanvas.getContext("2d")!;
+  const skyGradient = skyContext.createLinearGradient(0, 0, 0, 512);
+  skyGradient.addColorStop(0, "#447c88");
+  skyGradient.addColorStop(0.55, "#b4d0c3");
+  skyGradient.addColorStop(1, "#efd3aa");
+  skyContext.fillStyle = skyGradient;
+  skyContext.fillRect(0, 0, 2, 512);
+  const skyTexture = new THREE.CanvasTexture(skyCanvas);
+  skyTexture.colorSpace = THREE.SRGBColorSpace;
+  scene.background = skyTexture;
+  scene.fog = new THREE.Fog(0xb4d0c3, 32, 85);
+  scene.add(new THREE.HemisphereLight(0xffedd3, 0x17273e, 1.6));
+  const rim = new THREE.DirectionalLight(0x8edbea, 2.2);
+  rim.position.set(6, 9, -8);
+  scene.add(rim);
+  const sun = new THREE.DirectionalLight(0xffe4b2, 3.2);
   sun.position.set(-8, 16, 14);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
+  Object.assign(sun.shadow.camera, { left: -17, right: 17, top: 15, bottom: -10, near: 0.5, far: 65 });
+  sun.shadow.camera.updateProjectionMatrix();
+  sun.shadow.normalBias = 0.035;
+  sun.shadow.bias = -0.00015;
   scene.add(sun);
 
   const worldLength = Math.max(168, projects.length * 24);
   const platforms: Platform[] = [];
-  const segmentCount = Math.ceil((worldLength + 12) / 24);
+  const segmentCount = Math.ceil(worldLength / 24);
   for (const offset of [-1, 0, 1]) {
     const offsetX = offset * worldLength;
     for (let i = 0; i < segmentCount; i += 1) {
@@ -334,10 +487,12 @@ function buildWorld(projects: Project[]) {
 
   const far = new THREE.Group();
   far.position.z = -18;
-  const mountainMaterial = new THREE.MeshBasicMaterial({ color: 0x786a83, transparent: true, opacity: 0.65 });
+  sculpt(far, new THREE.SphereGeometry(3.1, 40, 24), new THREE.MeshBasicMaterial({color: 0xffdfae}), [8, 9, -12]);
+  const mountainMaterial = new THREE.MeshStandardMaterial({ color: 0x679689, roughness: 1, flatShading: true });
   for (let x = -30; x < worldLength + 40; x += 10) {
     const height = 5 + (Math.sin(x * 1.71) + 1) * 2.8;
-    const mountain = new THREE.Mesh(new THREE.ConeGeometry(5.8, height, 5), mountainMaterial);
+    const mountain = new THREE.Mesh(new THREE.ConeGeometry(7.8, height, 5), mountainMaterial);
+    mountain.rotation.y = x * 0.13;
     mountain.position.set(x, height / 2 - 1.8, 0);
     far.add(mountain);
   }
@@ -347,10 +502,12 @@ function buildWorld(projects: Project[]) {
   mid.position.z = -10;
   for (let x = -12; x < worldLength + 20; x += 14) {
     const towerHeight = 2.5 + ((x * 17) % 5 + 5) % 5;
-    const tower = addBox(mid, [2.2, towerHeight, 1], [x, towerHeight / 2 - 0.5, 0], new THREE.MeshBasicMaterial({ color: 0x394660 }));
+    const towerMaterial = new THREE.MeshStandardMaterial({ color: 0x526773, roughness: 0.85 });
+    const tower = addBox(mid, [2.2, towerHeight, 1.8], [x, towerHeight / 2 - 0.5, 0], towerMaterial);
+    addBox(mid, [2.5, 0.18, 2], [x, towerHeight - 0.45, 0], towerMaterial);
     tower.castShadow = false;
     for (let row = 0; row < Math.floor(towerHeight); row += 1) {
-      const windowLight = addBox(mid, [0.32, 0.18, 0.05], [x, row + 0.4, 0.55], new THREE.MeshBasicMaterial({ color: row % 2 ? 0xffd166 : 0x64e8ff }));
+      const windowLight = addBox(mid, [0.32, 0.18, 0.05], [x, row + 0.4, 0.93], new THREE.MeshBasicMaterial({ color: row % 2 ? 0xffd166 : 0x64e8ff }));
       windowLight.castShadow = false;
     }
   }
@@ -405,7 +562,7 @@ function buildWorld(projects: Project[]) {
   const seamPortal = buildSeamPortal(worldLength - 1.5, "#64e8ff");
   scene.add(seamPortal);
 
-  return { scene, platforms, stations, far, mid, clouds, finish, seamPortal, worldLength };
+  return { scene, sun, platforms, stations, far, mid, clouds, finish, seamPortal, worldLength };
 }
 
 type TestRuntimeWindow = Window & {
@@ -439,7 +596,8 @@ export function GameWorld({
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
-    const { scene, platforms, stations, far, mid, clouds, finish, seamPortal, worldLength } = buildWorld(projects);
+    const { scene, sun, platforms, stations, far, mid, clouds, finish, seamPortal, worldLength } = buildWorld(projects);
+    scene.add(sun.target);
     const explorer = buildExplorer();
     scene.add(explorer.root);
     const particles = buildWorldParticles(worldLength);
@@ -454,12 +612,21 @@ export function GameWorld({
     renderer.toneMappingExposure = 1.08;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // One small environment bake gives the visor and brass real reflections,
+    // without downloading HDR assets or adding a second per-frame render pass.
+    const environment = new RoomEnvironment();
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const environmentTarget = pmrem.fromScene(environment, 0.04);
+    scene.environment = environmentTarget.texture;
+    scene.environmentIntensity = 0.45;
+    environment.dispose();
+    pmrem.dispose();
     renderer.domElement.setAttribute("aria-label", "Playable side-scrolling GitHub portfolio world");
     renderer.domElement.dataset.gameCanvas = "true";
     renderer.domElement.tabIndex = 0;
     mount.appendChild(renderer.domElement);
 
-    const camera = new THREE.OrthographicCamera(-12, 12, 8, -8, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 140);
     camera.position.set(4, 5.4, 22);
     camera.lookAt(4, 3.2, 0);
     const clock = new THREE.Clock();
@@ -482,7 +649,22 @@ export function GameWorld({
     let seamTransition = false;
     let seamUntil = 0;
     let cameraKick = 0;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let gaitPhase = 0;
+    let landingCompression = 0;
+    let locomotionBlend = 0;
+    let accelerationLean = 0;
+    let lanternVelocity = 0;
+    let lanternSwing = 0;
+    let cameraDepth = 22;
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let reduceMotion = motionQuery.matches;
+    const motionChange = () => { reduceMotion = motionQuery.matches; };
+    motionQuery.addEventListener("change", motionChange);
+    const impact = new THREE.Mesh(new THREE.RingGeometry(0.36, 0.41, 48),
+      new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
+    impact.rotation.x = -Math.PI / 2;
+    scene.add(impact);
+    let impactAge = 1;
     const player = { x: 0, y: 0, vx: 0, vy: 0 };
 
     const updateFrustum = () => {
@@ -490,10 +672,8 @@ export function GameWorld({
       const height = Math.max(1, mount.clientHeight);
       const aspect = width / height;
       const frustumHeight = width < 720 ? 18 : 16;
-      camera.left = (-frustumHeight * aspect) / 2;
-      camera.right = (frustumHeight * aspect) / 2;
-      camera.top = frustumHeight / 2;
-      camera.bottom = -frustumHeight / 2;
+      camera.aspect = aspect;
+      camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(frustumHeight / 44));
       camera.updateProjectionMatrix();
       renderer.setSize(width, height, false);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, width < 720 ? 1.35 : 1.7));
@@ -567,7 +747,9 @@ export function GameWorld({
       const input = canMove ? (right ? 1 : 0) - (left ? 1 : 0) + (wheelActive ? wheelDirection : 0) + moveImpulse : 0;
       moveImpulse = THREE.MathUtils.damp(moveImpulse, 0, 2.8, dt);
       const targetVelocity = THREE.MathUtils.clamp(input, -1, 1) * 7.8;
+      const previousVelocity = player.vx;
       player.vx = THREE.MathUtils.damp(player.vx, targetVelocity, grounded ? 14 : 6, dt);
+      const acceleration = dt > 0 ? (player.vx - previousVelocity) / dt : 0;
       if (Math.abs(input) > 0.01) facing = Math.sign(input);
 
       if (jumpQueued && grounded) { player.vy = 10.5; grounded = false; cameraKick = 0.16; }
@@ -580,7 +762,12 @@ export function GameWorld({
       const landing = findLanding(oldY, nextY, collisionX);
       if (landing !== null) {
         nextY = landing;
-        if (!grounded && player.vy < -2.5) { explorer.body.scale.y = 0.84; cameraKick = Math.min(0.26, Math.abs(player.vy) * 0.018); }
+        if (!grounded && player.vy < -2.5) {
+          landingCompression = Math.min(0.2, Math.abs(player.vy) * 0.016);
+          cameraKick = Math.min(0.1, Math.abs(player.vy) * 0.006);
+          impactAge = 0;
+          impact.position.set(collisionX, landing + 0.1, 0.55);
+        }
         player.vy = 0;
         grounded = true;
         checkpointX = Math.max(checkpointX, nextX - 2);
@@ -602,22 +789,63 @@ export function GameWorld({
       if (seamTransition && elapsed >= seamUntil) seamTransition = false;
 
       explorer.root.position.set(player.x, player.y, 0.55);
-      explorer.root.scale.x = THREE.MathUtils.damp(explorer.root.scale.x, facing, 15, dt);
+      sun.position.x = player.x - 8;
+      sun.target.position.x = player.x;
+      // Turn in depth rather than collapsing the character through zero scale.
+      explorer.root.rotation.y = THREE.MathUtils.damp(explorer.root.rotation.y, facing * 1.15, 9, dt);
       explorer.body.scale.y = THREE.MathUtils.damp(explorer.body.scale.y, 1, 9, dt);
       const speed = Math.min(1, Math.abs(player.vx) / 6);
-      const runPhase = elapsed * (7 + speed * 9);
-      const stride = Math.sin(runPhase) * 0.72 * speed;
-      explorer.legL.rotation.z = grounded ? stride : -0.35;
-      explorer.legR.rotation.z = grounded ? -stride : 0.42;
-      explorer.armL.rotation.z = grounded ? -stride * 0.7 : -0.55;
-      explorer.armR.rotation.z = grounded ? stride * 0.55 : 0.5;
-      explorer.body.rotation.z = THREE.MathUtils.damp(explorer.body.rotation.z, grounded ? -player.vx * 0.018 : -0.12 * facing, 8, dt);
-      explorer.body.position.y = THREE.MathUtils.damp(explorer.body.position.y, grounded ? 1.1 + Math.abs(Math.sin(runPhase)) * 0.085 * speed : 1.13, 13, dt);
-      explorer.head.rotation.z = Math.sin(elapsed * 2.4) * 0.035;
-      explorer.lantern.rotation.z = Math.sin(elapsed * 7) * 0.22;
-      explorer.drone.position.y = 2.1 + Math.sin(elapsed * 3.2) * 0.18;
-      explorer.drone.position.x = 0.95 - facing * speed * 0.15;
-      explorer.droneRing.rotation.z += dt * 2.4;
+      locomotionBlend = THREE.MathUtils.damp(locomotionBlend, grounded ? speed : 0, 10, dt);
+      landingCompression = THREE.MathUtils.damp(landingCompression, 0, 12, dt);
+      if (grounded) gaitPhase += Math.abs(player.vx) * dt * 2.1;
+      const runPhase = gaitPhase;
+      // Swing in the character's sagittal plane; flex knees during recovery,
+      // not during the planted half of each stride.
+      [explorer.legL, explorer.legR].forEach((leg, index) => {
+        const phase = runPhase + index * Math.PI;
+        const swing = Math.sin(phase);
+        const airPose = player.vy > 0 ? (index ? 0.35 : -0.65) : -0.12;
+        leg.rotation.x = THREE.MathUtils.damp(leg.rotation.x, grounded ? swing * 0.65 * locomotionBlend : airPose, 16, dt);
+        leg.position.y = 0.98 - landingCompression;
+        explorer.knees[index].rotation.x = THREE.MathUtils.damp(explorer.knees[index].rotation.x,
+          grounded ? Math.max(0, -Math.cos(phase)) * 0.95 * locomotionBlend + landingCompression * 2 : (player.vy > 0 ? 0.85 : 0.25), 18, dt);
+      });
+      [explorer.armL, explorer.armR].forEach((arm, index) => {
+        const phase = runPhase + index * Math.PI;
+        arm.rotation.x = THREE.MathUtils.damp(arm.rotation.x, grounded ? -Math.sin(phase) * 0.5 * locomotionBlend : -0.45, 12, dt);
+        arm.rotation.z = index ? -0.08 : 0.08;
+        explorer.elbows[index].rotation.x = THREE.MathUtils.damp(explorer.elbows[index].rotation.x, -0.18 - speed * 0.55 - (grounded ? 0 : 0.25), 10, dt);
+      });
+      accelerationLean = THREE.MathUtils.damp(accelerationLean, reduceMotion ? 0 : THREE.MathUtils.clamp(acceleration * facing * 0.004, -0.14, 0.18), 6, dt);
+      explorer.body.rotation.x = THREE.MathUtils.damp(explorer.body.rotation.x, speed * 0.16 + accelerationLean - landingCompression * 0.5, 8, dt);
+      explorer.body.rotation.y = reduceMotion ? 0 : Math.sin(runPhase) * 0.05 * locomotionBlend;
+      const breath = reduceMotion ? 0 : Math.sin(elapsed * 1.8) * 0.012 * (1 - speed);
+      explorer.body.position.y = 1.35 - landingCompression + breath + Math.cos(runPhase * 2) * 0.035 * locomotionBlend;
+      explorer.head.rotation.z = reduceMotion ? 0 : Math.sin(elapsed * 2.4) * 0.025;
+      explorer.head.rotation.x = THREE.MathUtils.damp(explorer.head.rotation.x, -explorer.body.rotation.x * 0.55, 5, dt);
+      explorer.scarf.rotation.x = THREE.MathUtils.damp(explorer.scarf.rotation.x, reduceMotion ? 0 : 0.18 + speed * 0.8 + Math.sin(elapsed * 4) * 0.06 * speed, 5, dt);
+      explorer.scarf.rotation.z = reduceMotion ? 0 : Math.sin(elapsed * 3.2) * 0.07 * speed;
+      const cloth = explorer.scarfGeometry.attributes.position;
+      for (let i = 0; i < cloth.count; i += 1) {
+        const u = -explorer.scarfRest[i * 3 + 1] / 1.12;
+        const wave = reduceMotion ? 0 : Math.sin(elapsed * (4 + speed * 3) - u * 5) * u * u;
+        cloth.setXYZ(i, explorer.scarfRest[i * 3] + wave * 0.045,
+          explorer.scarfRest[i * 3 + 1], -u * u * speed * 0.38 + wave * (0.045 + speed * 0.14));
+      }
+      cloth.needsUpdate = true;
+      explorer.scarfGeometry.computeVertexNormals();
+      // Damped pendulum: acceleration excites it; gravity brings it to rest.
+      lanternVelocity += (-lanternSwing * 22 - lanternVelocity * 6 - acceleration * facing * 0.045) * dt;
+      lanternSwing = THREE.MathUtils.clamp(lanternSwing + lanternVelocity * dt, -0.6, 0.6);
+      explorer.lantern.rotation.x = -explorer.armR.rotation.x - explorer.elbows[1].rotation.x + (reduceMotion ? 0 : lanternSwing);
+      explorer.drone.position.y = THREE.MathUtils.damp(explorer.drone.position.y, 2.1 + (reduceMotion ? 0 : Math.sin(elapsed * 2.2) * 0.12 - player.vy * 0.018), 4, dt);
+      explorer.drone.position.x = THREE.MathUtils.damp(explorer.drone.position.x, 0.95 - facing * speed * 0.3, 3, dt);
+      if (!reduceMotion) explorer.droneRing.rotation.z += dt * 1.4;
+      explorer.drone.rotation.z = THREE.MathUtils.damp(explorer.drone.rotation.z, reduceMotion ? 0 : -accelerationLean * 0.8, 3, dt);
+      impactAge = Math.min(1, impactAge + dt * 2.1);
+      impact.visible = !reduceMotion && impactAge < 1;
+      impact.scale.setScalar(1 + impactAge * 3.8);
+      impact.material.opacity = (1 - impactAge) ** 2 * 0.45;
 
       cameraKick = THREE.MathUtils.damp(cameraKick, 0, 7, dt);
       const targetCameraX = player.x + facing * (2.2 + speed * 2.3);
@@ -625,14 +853,15 @@ export function GameWorld({
       const cameraY = THREE.MathUtils.damp(camera.position.y, 5.25 + Math.max(0, player.y) * 0.27, 4.5, dt);
       const kickX = reduceMotion ? 0 : Math.sin(elapsed * 38) * cameraKick;
       const kickY = reduceMotion ? 0 : Math.cos(elapsed * 31) * cameraKick * 0.55;
-      camera.position.set(cameraX + kickX, cameraY + kickY, 22);
+      cameraDepth = THREE.MathUtils.damp(cameraDepth, 22 + (reduceMotion ? 0 : speed * 0.65), 2.5, dt);
+      camera.position.set(cameraX + kickX, cameraY + kickY, cameraDepth);
       camera.lookAt(cameraX, cameraY - 2.1, 0);
-      const wrapLayer = (value: number, factor: number) => -((((value * factor) % worldLength) + worldLength) % worldLength) + worldLength * 0.5;
+      const wrapLayer = (value: number, factor: number) => value * factor;
       far.position.x = wrapLayer(cameraX, 0.16);
       mid.position.x = wrapLayer(cameraX, 0.35);
-      clouds.position.x = wrapLayer(cameraX, 0.54) + Math.sin(elapsed * 0.08) * 2;
+      clouds.position.x = wrapLayer(cameraX, 0.54) + (reduceMotion ? 0 : Math.sin(elapsed * 0.08) * 2);
       particles.position.x = -Math.floor(cameraX / worldLength) * worldLength;
-      particles.rotation.z = Math.sin(elapsed * 0.08) * 0.015;
+      particles.rotation.z = reduceMotion ? 0 : Math.sin(elapsed * 0.08) * 0.015;
       const streakOpacity = reduceMotion ? 0 : THREE.MathUtils.smoothstep(speed, 0.35, 1) * 0.34;
       speedStreaks.position.x = cameraX;
       speedStreaks.children.forEach((child) => {
@@ -645,16 +874,21 @@ export function GameWorld({
 
       stations.forEach(({ group }, index) => {
         const runtime = group.userData.runtime;
-        runtime.pulse.rotation.z += dt * (0.55 + index * 0.03);
-        runtime.pulse.scale.setScalar(1 + Math.sin(elapsed * 2.2 + index) * 0.08);
-        runtime.signal.rotation.y += dt * 1.8;
-        runtime.core.material.emissiveIntensity = index === lastNear ? 1.25 : 0.2;
-        runtime.label.position.y = runtime.baseY + Math.sin(elapsed * 1.8 + index) * 0.08;
+        if (!reduceMotion) runtime.pulse.rotation.z += dt * (0.22 + index * 0.02);
+        runtime.pulse.scale.setScalar(1 + (reduceMotion ? 0 : Math.sin(elapsed * 1.2 + index) * 0.025));
+        if (!reduceMotion) runtime.signal.rotation.y += dt * 0.6;
+        const engaged = index === lastNear || index === hoveredIndex;
+        const reveal = engaged ? 1 : 0;
+        runtime.core.material.emissiveIntensity = THREE.MathUtils.damp(runtime.core.material.emissiveIntensity, engaged ? 1.25 : 0.2, 5, dt);
+        runtime.core.position.y = THREE.MathUtils.damp(runtime.core.position.y, 2.7 + (reduceMotion ? 0 : reveal * 0.42), 4, dt);
+        runtime.pulse.rotation.y = THREE.MathUtils.damp(runtime.pulse.rotation.y, reduceMotion ? 0 : reveal * 0.65, 4, dt);
+        if (!reduceMotion) runtime.core.rotation.y += dt * (engaged ? 0.65 : 0.12);
+        runtime.label.position.y = runtime.baseY;
       });
-      finish.children.forEach((child) => { if (child.userData.spin) child.rotation.z += dt * child.userData.spin; });
+      finish.children.forEach((child) => { if (child.userData.spin && !reduceMotion) child.rotation.z += dt * child.userData.spin; });
       seamPortal.children.forEach((child) => {
-        if (child.userData.spin) child.rotation.z += dt * child.userData.spin;
-        if (child.userData.pulse) child.scale.setScalar(1 + Math.sin(elapsed * 3.4) * 0.2);
+        if (child.userData.spin && !reduceMotion) child.rotation.z += dt * child.userData.spin;
+        if (child.userData.pulse) child.scale.setScalar(1 + (reduceMotion ? 0 : Math.sin(elapsed * 1.7) * 0.06));
       });
 
       const nearest = stations.reduce((best, station, index) => {
@@ -677,6 +911,9 @@ export function GameWorld({
       mount.dataset.normalizedX = (player.x / worldLength).toFixed(4);
       mount.dataset.seamTransition = String(seamTransition);
       mount.dataset.nearby = lastNear >= 0 ? projects[lastNear].name : "";
+      mount.dataset.motion = reduceMotion ? "reduced" : "full";
+      mount.dataset.gaitPhase = gaitPhase.toFixed(3);
+      mount.dataset.scarfTip = cloth.getZ(cloth.count - 1).toFixed(3);
 
       raycaster.setFromCamera(pointer, camera);
       const hover = raycaster.intersectObjects(scene.children, true).find((item) => Number.isInteger(item.object.userData.projectIndex));
@@ -730,6 +967,7 @@ export function GameWorld({
       renderer.setAnimationLoop(null);
       window.removeEventListener("resize", updateFrustum);
       document.removeEventListener("visibilitychange", visibility);
+      motionQuery.removeEventListener("change", motionChange);
       window.removeEventListener("keydown", keyDown);
       window.removeEventListener("keyup", keyUp);
       window.removeEventListener("ohaki:mobile", mobileAction);
@@ -741,7 +979,7 @@ export function GameWorld({
       delete window.advanceTime;
       delete (window as TestRuntimeWindow).__ohaki_test_set_state;
       scene.traverse((object) => {
-        if (object instanceof THREE.Mesh) {
+        if (object instanceof THREE.Mesh || object instanceof THREE.Points || object instanceof THREE.LineSegments) {
           object.geometry.dispose();
           const materials = Array.isArray(object.material) ? object.material : [object.material];
           materials.forEach((material) => material.dispose());
@@ -752,6 +990,8 @@ export function GameWorld({
           object.material.dispose();
         }
       });
+      if (scene.background instanceof THREE.Texture) scene.background.dispose();
+      environmentTarget.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     };

@@ -32,7 +32,7 @@ export function Intro({ start }: { start: () => void }) {
 
       <div className="intro-content relative z-10 mx-auto w-full max-w-6xl">
         <motion.div
-          initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#ff7a75]/40 bg-[#ff7a75]/10 px-3.5 py-1.5"
