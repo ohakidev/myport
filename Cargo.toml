@@ -1,6 +1,5 @@
 [workspace]
 members = ["crates/server", "crates/play"]
-default-members = ["crates/server"]
 resolver = "3"
 
 [workspace.dependencies]
