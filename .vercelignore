@@ -15,7 +15,8 @@ next-env.d.ts
 target
 *.tsbuildinfo
 _reference-lightify97
-docs/agents
+docs
+crates/play/Cargo.lock
 public/play/myport_play.js
 public/play/myport_play_bg.wasm
 public/play/*.d.ts
