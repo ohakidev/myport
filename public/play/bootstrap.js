@@ -10,7 +10,7 @@ button.addEventListener('click', async () => {
   try {
     runtime ??= await import('./myport_play.js');
     if (!mounted) {
-      await runtime.default(new URL('./myport_play_bg.wasm?v=0.4.1', import.meta.url));
+      await runtime.default({ module_or_path: new URL('./myport_play_bg.wasm?v=0.4.2', import.meta.url) });
       document.getElementById('play-game').hidden = false;
       runtime.init();
       mounted = true;

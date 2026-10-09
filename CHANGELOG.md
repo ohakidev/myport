@@ -12,6 +12,10 @@
 - Kept case studies readable without JavaScript and made the WebAssembly playground an explicit, optional action.
 - Restored a partial preferences record without discarding its reduced-motion setting; preserved existing session version and storage keys.
 
+### Fixed
+
+- Removed the deprecated wasm-bindgen initializer call from the playground.
+
 ---
 
 ## Archived Next.js redesign history
