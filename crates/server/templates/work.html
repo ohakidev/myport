@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-intro">
+  <p class="case-meta">Selected work</p>
+  <h1>Engineering decisions, backed by source.</h1>
+  <p class="lede">Start with the problem, then follow the implementation and key decision. Each case links to the exact code reviewed and separates source evidence from deployed behavior.</p>
+</header>
+
+<nav class="case-index" aria-label="Case studies">
+  <a href="#myport">Myport architecture</a>
+  <a href="#activity">Activity workflow</a>
+  <a href="#method">Evidence boundaries</a>
+</nav>
+
+<section id="myport" class="case-study" aria-labelledby="myport-title">
+  <header class="case-heading">
+    <p class="case-meta">Myport / Rust / Axum / WebAssembly</p>
+    <h2 id="myport-title">Can someone read the work before entering the 3D scene?</h2>
+    <p class="case-summary">A Rust portfolio with server-rendered <code>/</code> and <code>/work</code> routes and an optional Rust/WebAssembly playground.</p>
+    <nav class="source-links" aria-label="Core Myport source">
+      <a href="https://github.com/ohakidev/myport/tree/main/crates/server">Rust server source</a>
+      <a href="https://github.com/ohakidev/myport/tree/main/crates/play/src">Rust playground source</a>
+      <a href="https://github.com/ohakidev/myport/commit/094abbe3d5e2759281ee8c37d2c7bff21c5cd4df">Earlier Next.js commit</a>
+    </nav>
+  </header>
+
+  <div class="case-grid">
+    <article class="decision">
+      <h3>Problem</h3>
+      <p>Make the portfolio readable without requiring a visitor to load the interactive 3D scene first.</p>
+      <h3>Implementation</h3>
+      <p><code>Axum + Askama</code> render <code>/</code> and <code>/work</code> from server-side HTML. <code>/play</code> is a separate entry point backed by Rust and WebAssembly.</p>
+    </article>
+    <article class="decision">
+      <h3>Key decision</h3>
+      <p>Keep the GitHub refresh off the page request path. Pages read a <code>RwLock&lt;Portfolio&gt;</code> snapshot, so page requests do not wait on GitHub and home keeps its saved list when refresh fails.</p>
+    </article>
+  </div>
+
+  <figure class="architecture" aria-labelledby="myport-architecture-title">
+    <h3 id="myport-architecture-title">Page, data, and optional runtime</h3>
+    <ol class="flow">
+      <li>
+        <strong>Pages</strong>
+        <code>/ and /work</code>
+        <p>Server-rendered with Axum + Askama.</p>
+      </li>
+      <li>
+        <strong>Portfolio data</strong>
+        <code>GitHub → snapshot</code>
+        <p>Refresh runs outside page requests.</p>
+      </li>
+      <li>
+        <strong>Optional playground</strong>
+        <code>/play → WebAssembly + WebGL 2</code>
+        <p>A separate browser runtime, not required for reading.</p>
+      </li>
+    </ol>
+    <figcaption>The earlier pinned Next.js commit is historical. The Rust sources linked above describe the current implementation.</figcaption>
+  </figure>
+
+  <details>
+    <summary>Refresh policy, runtime requirements, and historical Next.js details</summary>
+    <p>A background HTTPS refresh has a four-second timeout and one-hour interval. Failures or empty results keep the last readable snapshot. The seed keeps the portfolio readable before a successful refresh, but may become stale during an outage.</p>
+    <p>The <code>crates/play</code> crate has a <code>wasm32</code> entry point and WebGL 2 renderer. Browser storage keeps session and preference data with legacy-session handling. The separate playground still requires its compiled WebAssembly asset at startup and WebGL 2 to render.</p>
+    <p>This earlier Next.js commit predates the current Rust migration. Its root route passes GitHub data to <code>Journey</code>, which owns selection state around the Three.js <code>GameWorld</code> and <code>ProjectPanel</code>.</p>
+    <div class="source-links" aria-label="Additional pinned Myport source">
+      <a href="https://github.com/ohakidev/myport/blob/094abbe3d5e2759281ee8c37d2c7bff21c5cd4df/src/components/journey.tsx">Journey state</a>
+      <a href="https://github.com/ohakidev/myport/blob/094abbe3d5e2759281ee8c37d2c7bff21c5cd4df/src/components/journey/world.tsx">Three.js world</a>
+      <a href="https://github.com/ohakidev/myport/blob/094abbe3d5e2759281ee8c37d2c7bff21c5cd4df/src/components/journey/project-panel.tsx">Project details</a>
+    </div>
+    <p>The current Rust source paths are <code>crates/server/src/main.rs</code>, <code>crates/server/src/portfolio.rs</code>, and <code>crates/play/src</code>.</p>
+  </details>
+</section>
+
+<section id="activity" class="case-study" aria-labelledby="activity-title">
+  <header class="case-heading">
+    <p class="case-meta">Activity registration / Next.js / MongoDB</p>
+    <h2 id="activity-title">How does a form response become attendance?</h2>
+    <p class="case-summary">Review scope: one pinned Next.js and MongoDB snapshot, following <code>PublishForm</code>, <code>SubmitForm</code>, and <code>joinActivity</code>. This documents code paths, not deployed behavior.</p>
+    <nav class="source-links" aria-label="Core activity source">
+      <a href="https://github.com/ohakidev/stdactivitycheckV2/commit/115d44772fd392d5f7a4600fc0ab4ccd5dfb4ea7">Pinned activity commit</a>
+      <a href="https://github.com/ohakidev/stdactivitycheckV2/blob/115d44772fd392d5f7a4600fc0ab4ccd5dfb4ea7/actions/ActivityAction.tsx#L203">PublishForm</a>
+      <a href="https://github.com/ohakidev/stdactivitycheckV2/blob/115d44772fd392d5f7a4600fc0ab4ccd5dfb4ea7/actions/ActivityAction.tsx#L287">SubmitForm</a>
+      <a href="https://github.com/ohakidev/stdactivitycheckV2/blob/115d44772fd392d5f7a4600fc0ab4ccd5dfb4ea7/actions/ActivityAction.tsx#L458">joinActivity</a>
+    </nav>
+  </header>
+
+  <div class="case-grid">
+    <article class="decision">
+      <h3>Problem</h3>
+      <p>A submitted form, a booking, and attendance are separate states. Following only the form response hides the checks between them.</p>
+      <h3>Implementation</h3>
+      <p><code>PublishForm</code> saves activity and registration windows after checking for a session. <code>SubmitForm</code> saves a response, updates the submission count, then records a booking when one is absent.</p>
+    </article>
+    <article class="decision">
+      <h3>Key decision</h3>
+      <p>Treat check-in as its own gated transition. <code>joinActivity</code> requires a booking, an open registration window, and client-reported coordinates within 100 metres of the saved location. That proves reported proximity, not physical presence.</p>
+    </article>
+  </div>
+
+  <figure class="architecture" aria-labelledby="activity-architecture-title">
+    <h3 id="activity-architecture-title">From publishing to check-in</h3>
+    <ol class="flow">
+      <li>
+        <strong>Publish</strong>
+        <code>PublishForm</code>
+        <p>Open the registration window.</p>
+      </li>
+      <li>
+        <strong>Submit</strong>
+        <code>SubmitForm</code>
+        <p>Save a response and create a booking when one is absent.</p>
+      </li>
+      <li>
+        <strong>Check in</strong>
+        <code>joinActivity</code>
+        <p>Require a booking, open registration, and reported proximity.</p>
+      </li>
+    </ol>
+    <figcaption>A form response, a reservation, and registered attendance are separate states.</figcaption>
+  </figure>
+
+  <details>
+    <summary>Review authorization, partial failure, and supporting sources</summary>
+    <article class="decision">
+      <h3>Trust boundaries and partial failure</h3>
+      <p>In the pinned commit, <code>PublishForm</code> checks for a session but does not call the admin-role guard used by other actions. <code>joinActivity</code> receives coordinates from the client, so its distance check validates reported proximity, not physical presence.</p>
+      <p><code>SubmitForm</code> saves the response, updated form, and optional booking in ordered writes without a transaction. A later failure can leave an earlier write persisted. These are source-review observations, not production incident evidence.</p>
+    </article>
+    <div class="source-links" aria-label="Additional pinned activity source">
+      <a href="https://github.com/ohakidev/stdactivitycheckV2/blob/115d44772fd392d5f7a4600fc0ab4ccd5dfb4ea7/actions/ActivityAction.tsx#L53">Admin-role guard</a>
+      <a href="https://github.com/ohakidev/stdactivitycheckV2/blob/115d44772fd392d5f7a4600fc0ab4ccd5dfb4ea7/actions/mapActions.js#L86">Location query</a>
+      <a href="https://github.com/ohakidev/stdactivitycheckV2/blob/115d44772fd392d5f7a4600fc0ab4ccd5dfb4ea7/models/ActivityForm.js">Activity model</a>
+      <a href="https://github.com/ohakidev/stdactivitycheckV2/blob/115d44772fd392d5f7a4600fc0ab4ccd5dfb4ea7/README.md#L3">README context</a>
+    </div>
+  </details>
+</section>
+
+<section id="method" class="evidence-note" aria-labelledby="method-title">
+  <h2 id="method-title">Current Rust source. Historical Next.js evidence.</h2>
+  <p>Myport's current Rust implementation is linked above. Its pinned Next.js commit is historical. Activity links point to the exact reviewed commit. Source code does not establish individual authorship, adoption, or measured outcomes.</p>
+  <p><a class="back-link" href="/">Return home</a> <a class="text-link" href="/play">Explore the optional playground</a></p>
+</section>
+{% endblock %}
+
+{% block scripts %}{% endblock %}

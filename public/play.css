@@ -1,0 +1,344 @@
+.play-intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 40px 0 28px;
+}
+
+.play-intro h1 {
+  font-size: clamp(2.35rem, 4.5vw, 3.8rem);
+}
+
+.play-intro p {
+  margin: 12px 0 0;
+  color: var(--muted);
+}
+
+.play-entry {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  align-items: center;
+  gap: clamp(28px, 6vw, 76px);
+  padding: 24px 0 36px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.play-entry-art {
+  width: 100%;
+  aspect-ratio: 1.5;
+  object-fit: cover;
+  background: var(--surface);
+}
+
+.play-entry-copy h2 {
+  max-width: 13ch;
+  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+}
+
+.play-entry-copy > p {
+  color: var(--muted);
+}
+
+.play-entry-copy .button {
+  margin: 2px 0 12px;
+}
+
+#play-load-status {
+  min-height: 2.8em;
+  margin-bottom: 0;
+  font-size: 0.86rem;
+}
+
+.play-game {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.play-stage {
+  position: relative;
+  min-width: 0;
+  background: #263740;
+}
+
+#play-canvas {
+  width: 100%;
+  height: 560px;
+  display: block;
+  touch-action: none;
+}
+
+.stage-label {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #f1f4ee;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.play-sidebar {
+  min-width: 0;
+  padding: 22px;
+  background: var(--paper);
+}
+
+.play-sidebar h2 {
+  margin-bottom: 12px;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+#play-status {
+  min-height: 4.4em;
+  margin-bottom: 14px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.play-chapter-progress {
+  width: 100%;
+  height: 6px;
+  display: block;
+  margin: -2px 0 16px;
+  appearance: none;
+  background: var(--line);
+  color: var(--accent);
+  accent-color: var(--accent);
+}
+
+.play-chapter-progress[hidden] {
+  display: none;
+}
+
+.play-chapter-progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.play-chapter-progress::-webkit-progress-value,
+.play-chapter-progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.play-primary-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.play-primary-actions .button {
+  width: 100%;
+  white-space: normal;
+  text-align: center;
+}
+
+.plain-control {
+  min-height: 44px;
+  display: block;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.89rem;
+  text-align: left;
+}
+
+.more-workshops {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.more-workshops > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 570;
+}
+
+.workshop-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 16px;
+  margin-top: 10px;
+}
+
+.workshop-list button {
+  min-width: 0;
+  min-height: 56px;
+  display: block;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  font-size: 0.84rem;
+  text-align: left;
+}
+
+.workshop-list button span {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.play-settings p,
+.save-recovery p {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.move-controls {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.move-controls button {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  touch-action: none;
+}
+
+.play-note {
+  margin: 18px 0 32px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.play-root:not([data-active='-1']) #play-start-myport,
+.play-root:not([data-active='-1']) #play-begin,
+.play-root:not([data-active='-1']) #play-resume,
+.play-root:not([data-active='-1']) #play-next {
+  display: none;
+}
+
+.play-root:not([data-active='-1']) #play-next-target {
+  display: inline-flex;
+}
+
+.play-root[data-active='-1'] #play-next-target,
+.play-root[data-active='-1'] #play-pause {
+  display: none;
+}
+
+.play-root[data-resumable='true'] #play-start-myport,
+.play-root[data-resumable='false'] #play-resume,
+.play-root[data-resumable='false'] #play-discard {
+  display: none;
+}
+
+.play-root[data-resumable='true'] #play-begin {
+  display: none;
+}
+
+.play-root[data-resume-project='-1'] #play-resume,
+.play-root[data-completed-project='-1'] #play-next {
+  display: none;
+}
+
+.play-root[data-lighting='evening'] .stage-label {
+  color: #f4eddf;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .workshop-list button {
+    transition: color 160ms ease, border-color 160ms ease;
+  }
+
+  .workshop-list button:hover,
+  .more-workshops > summary:hover {
+    color: var(--accent);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .play-chapter-progress::-webkit-progress-value,
+  .play-chapter-progress::-moz-progress-bar {
+    transition: width 180ms ease;
+  }
+}
+
+@media (max-width: 1023px) {
+  .play-game {
+    grid-template-columns: minmax(0, 1fr) 285px;
+  }
+
+  #play-canvas {
+    height: 520px;
+  }
+
+  .play-sidebar {
+    padding: 18px;
+  }
+
+  .play-entry {
+    gap: 28px;
+  }
+}
+
+@media (max-width: 767px) {
+  .play-intro {
+    display: block;
+    padding: 30px 0 24px;
+  }
+
+  .play-intro .text-link {
+    margin-top: 4px;
+  }
+
+  .play-entry {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding: 18px 0 28px;
+  }
+
+  .play-entry-art {
+    aspect-ratio: 1.65;
+  }
+
+  .play-game {
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .play-sidebar {
+    border-top: 1px solid var(--line);
+  }
+
+  #play-canvas {
+    height: 330px;
+  }
+
+  .stage-label {
+    top: 12px;
+    left: 14px;
+    right: 14px;
+    font-size: 0.74rem;
+  }
+
+  #play-status {
+    min-height: 0;
+  }
+
+  .workshop-list {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .play-note {
+    margin-bottom: 24px;
+  }
+}

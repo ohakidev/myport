@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="home-intro">
+  <div class="home-copy">
+    <p class="home-kicker">Ohaki <span aria-hidden="true">/</span> Web developer</p>
+    <h1>Web systems. Clear paths.</h1>
+    <p class="lede">I’m Ohaki. I build web interfaces and the systems behind them. Two projects, from user flow to architecture.</p>
+    <nav class="home-actions" aria-label="Explore the portfolio">
+      <a class="button" href="/work">Case studies <span aria-hidden="true">↗</span></a>
+      <a class="text-link" href="https://github.com/ohakidev">GitHub profile <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+  <figure class="home-visual">
+    <img src="/assets/images/systems-atelier.webp" width="1200" height="800" alt="Architectural study model with three connected workspaces and a bright green ramp" fetchpriority="high">
+    <figcaption>Systems atelier. Concept artwork, not a software screenshot.</figcaption>
+  </figure>
+</header>
+<section id="selected-work" class="selected-work" aria-labelledby="selected-title">
+  <div class="work-heading">
+    <h2 class="section-heading" id="selected-title">Selected work</h2>
+    <a class="text-link" href="/work">Case studies <span aria-hidden="true">↗</span></a>
+  </div>
+  <article class="project-feature">
+    <div class="project-copy">
+      <p class="project-kind">Portfolio / Rust migration</p>
+      <h3><a href="/work#myport">Myport <span aria-hidden="true">↗</span></a></h3>
+      <p>A Rust portfolio with server-rendered case studies and an optional Rust and WebAssembly playground.</p>
+      <dl class="project-facts"><div><dt>System</dt><dd>Axum + Askama pages; Rust and WebAssembly playground on request</dd></div><div><dt>Decisions</dt><dd>Rendering, boundaries, load strategy, recovery</dd></div></dl>
+      <a class="text-link project-cta" href="/work#myport">See the design and trade-offs <span aria-hidden="true">↗</span></a>
+    </div>
+    <figure class="architecture-preview" aria-label="Myport page and playground rendering path">
+      <div><span>Browse</span><strong>Axum + Askama</strong><p>HTML is ready in the response</p></div>
+      <div><span>Choose</span><strong>Load on request</strong><p>The playground stays optional</p></div>
+      <div><span>Explore</span><strong>Rust + WebAssembly</strong><p>Scene code runs in the browser</p></div>
+      <figcaption>Follow one visitor action through the rendering path.</figcaption>
+    </figure>
+  </article>
+  <article class="project-row">
+    <div class="project-copy">
+      <p class="project-kind">Activity registration</p>
+      <h3><a href="/work#activity">Student activity system <span aria-hidden="true">↗</span></a></h3>
+      <p>Follow one registration from submission to booking and check-in. The case study shows where role checks, state changes and partial writes matter.</p>
+      <p class="project-stack">Next.js / MongoDB</p>
+      <a class="text-link project-cta" href="/work#activity">Trace the registration flow <span aria-hidden="true">↗</span></a>
+    </div>
+    <div class="state-preview" aria-label="Activity workflow: response submitted, place booked, attendance registered">
+      <span>Response received</span><span aria-hidden="true">↓</span><span>Place booked</span><span aria-hidden="true">↓</span><strong>Attendance registered</strong>
+      <p>Three states. Different checks.</p>
+    </div>
+  </article>
+</section>
+<details class="repository-section">
+  <summary class="section-heading" id="repositories-title">Other public repositories</summary>
+  <p>{% if portfolio.live %}Public repositories from the latest successful refresh.{% else %}Showing the saved public-repository list. A live GitHub refresh is not available yet.{% endif %}</p>
+  <div class="repository-list">
+  {% for project in portfolio.projects %}
+    <a class="repository" href="{{ project.url }}"><span><strong>{{ project.name }}</strong><span>{{ project.description }}</span></span><span class="repo-language">{{ project.language }} <span aria-hidden="true">↗</span></span></a>
+  {% endfor %}
+  </div>
+</details>
+<section id="about" class="about-section" aria-labelledby="about-title">
+  <h2 id="about-title">Built from the interface to saved state.</h2>
+  <div><p>Each case study links decisions to the code reviewed and explains what the available evidence does not prove.</p><a class="text-link" href="/work#method">How to read the evidence <span aria-hidden="true">↗</span></a></div>
+</section>
+{% endblock %}

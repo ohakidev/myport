@@ -10,3 +10,7 @@ _reference-lightify97
 dist
 .vercel
 .openai
+target
+public/play/myport_play.js
+public/play/myport_play_bg.wasm
+public/play/*.d.ts
