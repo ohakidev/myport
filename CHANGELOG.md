@@ -2,6 +2,11 @@
 
 ## Unreleased — Rust runtime migration
 
+### Changed
+
+- Reworked the portfolio homepage around Ohaki's research-first motivation and the real Myport garden; made project and source paths easier to scan while preserving existing routes.
+- Refined case-study framing and responsive typography without adding client JavaScript or a UI dependency.
+
 ### Added
 
 - Replaced the active Next.js runtime with Rust/Axum server-rendered routes and a Rust/WebAssembly playground; historical Next.js source and package configuration remain under `legacy-next/`.

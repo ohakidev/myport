@@ -63,7 +63,7 @@ async fn home(State(cache): State<Arc<PortfolioCache>>) -> Response {
     render(Home {
         current: "home",
         title: "Ohaki | Web development & systems",
-        description: "Web interfaces, an interactive Rust playground, and source-linked engineering case studies.",
+        description: "Ohaki builds web projects from curiosity, including a source-backed Rust portfolio and a walkable garden playground.",
         portfolio: cache.snapshot().await,
     })
 }

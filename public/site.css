@@ -25,7 +25,7 @@
   --font: Geist, Arial, sans-serif;
   --mono: 'Geist Mono', monospace;
   --radius: 4px;
-  --content-width: 1280px;
+  --content-width: 1360px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -203,27 +203,27 @@ code {
 
 .home-intro {
   display: grid;
-  grid-template-columns: 0.92fr 1.08fr;
+  grid-template-columns: 0.84fr 1.16fr;
   align-items: center;
-  gap: clamp(36px, 5.4vw, 76px);
-  padding: 56px 0 68px;
+  gap: clamp(36px, 6vw, 84px);
+  padding: 64px 0 84px;
 }
 
 .home-kicker {
-  margin: 0 0 18px;
+  margin: 0 0 20px;
   color: var(--muted);
-  font-family: var(--mono);
-  font-size: 0.82rem;
+  font-size: 0.98rem;
 }
 
 .home-copy h1 {
-  max-width: 12ch;
-  font-size: clamp(2.9rem, 5vw, 4.55rem);
+  max-width: 9ch;
+  font-size: clamp(3.4rem, 6vw, 5.5rem);
+  line-height: 0.98;
 }
 
 .lede {
   max-width: 52ch;
-  margin: 20px 0 26px;
+  margin: 22px 0 30px;
   color: var(--muted);
   font-size: 1.08rem;
   line-height: 1.6;
@@ -243,15 +243,23 @@ code {
 
 .home-visual img {
   width: 100%;
-  aspect-ratio: 1.5;
+  aspect-ratio: 1.44;
   object-fit: cover;
   background: var(--surface);
 }
 
 .home-visual figcaption {
-  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 12px;
   color: var(--muted);
   font-size: 0.86rem;
+}
+
+.home-visual figcaption .text-link {
+  flex: none;
 }
 
 .work-heading {
@@ -259,7 +267,7 @@ code {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 24px;
 }
 
 .section-heading {
@@ -272,12 +280,18 @@ code {
   margin: 0;
 }
 
+.section-lede {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
 .project-feature {
   display: grid;
-  grid-template-columns: 0.95fr 1.05fr;
+  grid-template-columns: 0.9fr 1.1fr;
   align-items: center;
-  gap: 64px;
-  padding: 34px 0 44px;
+  gap: clamp(34px, 6vw, 80px);
+  padding: 36px 0 52px;
   border-top: 1px solid var(--line);
 }
 
@@ -385,6 +399,36 @@ code {
   margin: 0;
 }
 
+.project-diagram {
+  min-width: 0;
+  margin: 0;
+  padding: clamp(24px, 4vw, 48px);
+  background: var(--surface);
+}
+
+.project-diagram-path {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(8px, 1.6vw, 22px);
+  margin: 0;
+  font-family: var(--mono);
+  font-size: clamp(0.78rem, 1.25vw, 1rem);
+  font-weight: 560;
+  overflow-wrap: anywhere;
+}
+
+.project-diagram-path span:nth-child(even) {
+  color: var(--accent);
+}
+
+.project-diagram figcaption {
+  max-width: 38ch;
+  margin-top: 22px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .architecture-preview > div {
   min-width: 0;
   padding-top: 16px;
@@ -426,7 +470,7 @@ code {
   grid-template-columns: 1.35fr 0.85fr;
   align-items: center;
   gap: 64px;
-  padding: 44px 0 48px;
+  padding: 48px 0 56px;
   border-top: 1px solid var(--line);
 }
 
@@ -445,9 +489,11 @@ code {
   font-size: 0.9rem;
 }
 
-.state-preview > span:nth-child(even) {
-  color: var(--muted);
-  font-size: 1.1rem;
+.state-preview .state-connector {
+  width: 1px;
+  height: 22px;
+  margin: 5px 0;
+  background: var(--line);
 }
 
 .state-preview strong {
@@ -460,6 +506,10 @@ code {
   color: var(--muted);
   font-family: var(--font);
   font-size: 0.82rem;
+}
+
+.state-preview > span:not(.state-connector) {
+  color: var(--muted);
 }
 
 .repository-section {
@@ -850,17 +900,23 @@ details[open] > summary {
   }
 
   .work-heading {
+    flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: 4px;
   }
 
   .work-heading .text-link {
-    justify-content: flex-end;
-    text-align: right;
+    justify-content: flex-start;
+    text-align: left;
   }
 
   .home-visual img {
-    aspect-ratio: 1.55;
+    aspect-ratio: 1.44;
+  }
+
+  .home-visual figcaption {
+    align-items: flex-start;
+    flex-wrap: wrap;
   }
 
   .section-heading {
@@ -893,6 +949,18 @@ details[open] > summary {
   .project-facts div {
     grid-template-columns: 82px 1fr;
     gap: 10px;
+  }
+
+  .project-diagram {
+    padding: 22px 18px;
+  }
+
+  .project-diagram-path {
+    font-size: 0.78rem;
+  }
+
+  .project-diagram figcaption {
+    margin-top: 16px;
   }
 
   .project-copy h3 {
@@ -968,5 +1036,18 @@ details[open] > summary {
 
   .evidence-note {
     margin-bottom: 38px;
+  }
+}
+
+@media (max-width: 380px) {
+  .home-visual figcaption {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .project-diagram-path {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 6px;
+    font-size: 0.72rem;
   }
 }
