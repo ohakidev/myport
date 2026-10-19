@@ -1,0 +1,38 @@
+---
+title: Architecture
+description: Route boundaries, state ownership and the motion lifecycle.
+---
+
+## Routes and data
+
+`src/lib/github.ts` supplies bounded public GitHub data and an explicitly labelled
+saved snapshot fallback. Server pages pass typed data into the reading interface.
+`src/lib/case-studies.ts` is the shared source for `/` and `/work`.
+The existing Three.js journey lives behind `/play`; it is not imported into `/`.
+
+## Motion ownership
+
+`portfolio-home.tsx` owns the one-shot intro sequence. Masked characters are
+visual only; the heading retains a single accessible name. Unenhanced content
+is visible before GSAP loads.
+
+`atelier-character.tsx` owns its original SVG, pointer-follow eyes and finite
+greeting timeline. Only GSAP owns animated group transforms. No ambient ticker
+or renderer runs continuously. Offscreen/background greeting work is stopped.
+
+`repository-deck.tsx` owns the horizontal scroll interaction and edge buttons.
+The parent owns filtering. Native overflow remains the fallback; GSAP Draggable
+adds scroll inertia and elastic card rotation. Links remain real links, and the
+region supports arrow keys. Search/filter changes reset the deck to its start.
+
+The parent initializes motion from the operating-system preference and listens
+for changes. An explicit Animations button allows a session-only visitor override.
+All three enhancements use `gsap.context` and revert when disabled or unmounted.
+Observers and DOM listeners are explicitly disconnected. Reduced motion removes
+the choreography and drag physics, not the content or controls.
+
+## Documentation boundary
+
+Blume reads `docs/` using `blume.config.ts`. Generated `.blume/` and `dist/` stay
+local and ignored. `.vercelignore` excludes the documentation/configuration from
+portfolio uploads. No internal stage or roadmap UI is added to the public site.

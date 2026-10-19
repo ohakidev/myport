@@ -1,0 +1,64 @@
+---
+title: Current stage
+description: Completed work, open verification and dated release evidence.
+---
+
+## Completed
+
+- Next.js reading routes `/` and `/work`; optional Three.js playground `/play`.
+- Cobalt editorial layout, shared theme/navigation, project inspector and repository search.
+- Character-masked GSAP hero sequence, original interactive SVG companion,
+  horizontal repository deck with Draggable/InertiaPlugin and elastic card response.
+- Native scroll/button fallback, keyboard controls and reduced-motion alternatives.
+
+## In progress
+
+- None for this animation release. User visual acceptance remains separate from
+  the automated and browser evidence below.
+
+## Remaining
+
+- Optional follow-up: physical touch devices, Safari/iOS and measured Core Web Vitals.
+
+## Blockers and limits
+
+- No current access blocker. Safari/iOS and physical-device acceptance are not proven.
+- No claim of Awwwards recognition or copied reference artwork/source.
+
+## Last verified evidence — 2026-10-20
+
+- Production: `dpl_E9qDoS6LHfJWVeSVrnLusZnvDkcY`, Next.js READY.
+- Vercel alias API confirms [myport-five-kappa.vercel.app](https://myport-five-kappa.vercel.app/)
+  points to this exact deployment after promotion.
+- Release-input SHA256: `dc09dcd08cf442fc3fd7f089c71baacdb985120488cdaa75a8c36d94c57f99e2`.
+  Originally a direct working-tree upload. The Git publication checkpoint carries
+  the same 61 release inputs, verified by this digest; it does not deploy again.
+- Cloud build: seven static pages; First Load JS `/` 131 kB, `/work` 123 kB,
+  `/play` 184 kB. These are build sizes, not Core Web Vitals.
+- Type check and seven assert-based motion/lifecycle/upload-boundary checks passed.
+- Real browser: character transforms changed after greeting and returned to rest;
+  eye tracking changed with pointer location; masked heading returned to readable rest.
+- Candidate deck drag: scrollLeft 0 to 510.4, then 1032.8 after release;
+  card rotation -2.4929 degrees to near zero. Search 0/6 to reset 6/6 passed.
+- Keyboard arrows, edge buttons, filter reinitialization and source-link opening
+  passed locally; 390px drag and 320px candidate layout checked. At 320px the
+  single-card deck measured 247px for both viewport and content, with Next disabled.
+- Reduced motion was actually active in the browser; static greeting feedback,
+  visible heading and button scrolling passed. Explicit opt-in exercised full motion.
+- No console warnings/errors were observed in the affected checked flows.
+- Blume strict link validation and static build passed; `llms.txt`, Markdown and
+  JSON docs output generated locally. Documentation is not deployed.
+- Six older deployments, including the former rollback target, were permanently
+  removed at the user's request. The project inventory now contains only the
+  current READY deployment; the primary alias is unchanged and all three routes
+  returned HTTP 200 after cleanup.
+- No existing-deployment rollback remains. Historical source stays in Git and
+  can be redeployed through a separately authorized release.
+- Vercel is not Git-linked. Publishing to `ohakidev/myport` does not automatically
+  update production; no Git integration or additional deployment was created.
+
+REA statically parsed the two public reference JavaScript files with no parse
+failures; this informed the sequence and inertia behavior, not runtime proof or
+permission to copy the reference assets/code. The bounded design consultation
+returned `gpt-6-luna-max`, not Claude/Argon. Controller route configuration does
+not independently establish the actual upstream execution of this chat.

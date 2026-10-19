@@ -1,6 +1,21 @@
 # Changelog
 
-## Unreleased — Rust runtime migration
+## Unreleased
+
+- Added masked-character hero choreography, an original pointer-aware SVG companion with a replayable greeting, and a draggable repository deck with inertia and elastic response.
+- Added an explicit animation preference control, defaulting to the operating-system setting, with native scrolling and keyboard fallbacks.
+- Added a separate Blume developer handbook and corrected historical runtime documentation.
+- Introduced the electric atelier portfolio direction: bold cobalt typography, interactive artwork, compact source disclosures and native capability accordions.
+- Updated shared Index/Work styling and Vercel commands for the restored Next.js runtime.
+
+### Changed
+
+- Restored Next.js 15 / React 19 as the active application at the repository root, including the optional Three.js playground at `/play`.
+- Redesigned Index and Work with a shared electric-cobalt / midnight palette, restrained motion, accessible controls and responsive reading layouts.
+- Added a searchable repository index and reusable architecture inspector with commit-pinned source, decisions and explicit trade-offs.
+- Kept public GitHub validation, caching and saved-data fallback. Theme selection persists across reading routes.
+
+## Archived Rust runtime migration
 
 ### Changed
 

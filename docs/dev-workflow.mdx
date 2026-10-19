@@ -1,0 +1,54 @@
+---
+title: Development workflow
+description: Focused checks and an explicit candidate-to-production release.
+---
+
+## Application
+
+Use the root `README.md` for install/start commands and route contracts.
+Run `pnpm exec tsc --noEmit` for a focused type check; `pnpm build` is the release
+compilation gate, not proof of interaction.
+
+For motion changes exercise: hard reload, hello/wave, pointer response, deck drag
+and coast, edge buttons, keyboard navigation, repository search/reset and a real
+source link. Repeat the affected path at mobile width and with reduced motion.
+Inspect runtime errors and failed required requests. Keep QA captures outside Git.
+Practical regression budgets: no Three.js runtime on `/`, no idle animation loop,
+no horizontal page overflow at 320px, and report measured load/interaction costs
+without treating desktop emulation as physical-device evidence.
+
+## Documentation
+
+The separate, preinstalled CLI is `blume@2.2.4` (Node 22.19+).
+From the repository root run `blume validate --strict`, then `blume build`.
+On this Windows workstation the executable is
+`C:/Users/oom20/AppData/Roaming/npm/blume.cmd`.
+The ignored `node_modules/blume` junction points to that global installation so
+the generated Astro runtime can resolve `blume/*`. On another workstation,
+install the same version separately and use `npm link --no-save blume` to provide
+local module resolution; it is not a portfolio runtime dependency.
+Do not replace the Next.js `dev` or `build` scripts with docs commands.
+The config's tiny Astro integration isolates Blume's Tailwind 4 build from the
+application's Tailwind 3 PostCSS configuration.
+Do not deploy the docs or commit generated output.
+
+## Release
+
+Publication and deployment require explicit user authority. Review and commit an
+explicit source-file allowlist before a future authorized release; exclude
+credentials, assistant instructions and local probes. Inspect the exact upload
+set separately; exclude internal docs from the application deployment.
+Use the existing Vercel project and source-level Next.js overrides.
+Build a candidate with `--prod --skip-domain`, verify it, then promote its exact
+deployment ID and read back the public alias. Keep the previous verified
+deployment as rollback unless the user explicitly requests its deletion.
+On 2026-10-20 the user requested removal of all six older deployments, so recovery
+now requires redeploying historical Git source rather than promoting an old ID.
+A deployment ID/source digest identifies a dirty-source release; do not imply it
+was built from a Git commit. Compare the release-input digest when publishing
+the same checkpoint later, and verify the remote SHA after pushing.
+
+The current Vercel project is not Git-linked. A source-only GitHub push must not
+be followed by an unsolicited deployment or Git-integration change.
+
+Update [current stage](/status) with dated actual evidence after verification.

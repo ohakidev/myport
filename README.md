@@ -1,29 +1,58 @@
 # Myport
 
-A recruiter-first portfolio served by a small Rust application. `/` and `/work` are server-rendered with Axum and Askama; GitHub repository metadata refreshes in the background and never blocks a page request. `/play` is optional: its Rust/WebAssembly scene is loaded only after a visitor asks to enter.
+A readable developer portfolio built with Next.js 15, React 19 and TypeScript. The main reading routes do not load the Three.js world:
 
-## Build and run
+- `/`: selected work, interactive architecture preview, repository search and GitHub profile.
+- `/work`: two source-linked case studies with decisions, implementation layers and trade-offs.
+- `/play`: the optional interactive rooftop journey.
 
-Requirements: Rustup with a stable Rust toolchain, the `wasm32-unknown-unknown` target, and `wasm-bindgen-cli` **0.2.129**. On Windows, use a functioning MSVC or GNU native linker for the Rust server.
+## Local development
+
+Use Node.js 20.9 or newer and pnpm.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/build.ps1
-powershell -ExecutionPolicy Bypass -File scripts/serve.ps1
+pnpm install --frozen-lockfile
+pnpm dev -p 3100
 ```
 
-The server listens on `127.0.0.1:3100` by default. Set `MYPORT_BIND` to change the address or `MYPORT_ASSETS` to serve assets from another directory. The build checks required route/playground assets before the server starts.
+Production build and local preview:
 
-Build objects default to `%LOCALAPPDATA%\myport-rust\build` to keep the Windows GNU linker away from this Thai-named OneDrive path. If `%LOCALAPPDATA%` itself contains non-ASCII characters, set `CARGO_TARGET_DIR` to an ASCII-only path before running both scripts; relative values resolve from the project root.
+```powershell
+pnpm build
+pnpm start -p 3100
+```
 
-The small `public/play/bootstrap.js` file is browser glue for the user-triggered WASM import and recovery message; scene rendering, movement, chapter state and persistence are Rust. Session compatibility uses `ohaki-garden-session-v2`, `ohaki-garden-stories-v1`, and `ohaki-garden-preferences-v1`.
+No Rust toolchain or WASM build is required. Vercel is configured for Next.js; deployment is separate from local verification.
 
-Static filenames are stable, so bump their version query value in the route templates and playground bootstrap when shipping changed CSS, bootstrap, or WebAssembly assets.
+## Where to make changes
 
-## Project layout
+- `src/app/portfolio-system.css`: shared theme, navigation, controls and architecture-inspector styles.
+- `src/app/portfolio.css`: Index composition and responsive layout.
+- `src/app/work/work.css`: case-study layout.
+- `src/lib/case-studies.ts`: shared case-study copy and historical source references.
+- `src/components/architecture-inspector.tsx`: reusable four-layer inspector.
+- `src/lib/github.ts`: validated public GitHub data, one-hour cache, bounded requests and saved fallback.
+- `src/components/journey.tsx`: playground interface, progress and focus coordination.
+- `src/components/journey/world.tsx`: Three.js runtime.
 
-- `crates/server`: Axum routes, Askama templates, security headers, static assets and stale-tolerant public GitHub snapshot.
-- `crates/play`: Rust game model and browser renderer, compiled to WebAssembly.
-- `public`: self-hosted CSS, fonts, imagery and generated WASM bindings.
-- `legacy-next`: preserved Next.js source and configuration from before the Rust runtime migration; it is not part of the current build or server.
+Next.js server routes load portfolio data; client components own only their local UI state. Existing shadcn buttons remain the primitive base. GSAP sequences the hero, animates the original SVG companion, and enhances the repository deck with drag inertia and elastic response. Native horizontal scrolling and arrow buttons remain the fallback. All added motion respects reduced motion; the document itself retains native scrolling.
 
-The Myport case study links to the current Rust source and labels the pinned Next.js commit as historical evidence. A local build does not imply measured production performance.
+Electric cobalt is the initial palette; the visitor can select Midnight. The saved preference uses `ohaki-portfolio-theme` and falls back to a session-only preference when storage is unavailable.
+
+The electric atelier direction uses oversized type, outlined controls and an interactive illustrated companion. Dave Holloway's public portfolio informed high-level contrast and motion principles; its identity, artwork, text and code are not shipped here. Native disclosure elements keep secondary source notes and capabilities readable without custom state machinery.
+
+## Developer documentation
+
+Blume's separate developer handbook lives in `docs/`, starting with `docs/status.mdx`.
+See `docs/dev-workflow.mdx` for its pinned CLI and validation/build commands.
+Internal docs and generated output are excluded from the portfolio deployment.
+
+## Content and evidence boundaries
+
+Public repository data belongs to `ohakidev`. The repository index labels saved fallback data and distinguishes loaded repositories from the profile's public repository count.
+
+Case-study source links use exact historical commits. They are not claims that a historical snapshot includes current local work, or proof of deployment, authorship, adoption or performance.
+
+The existing `public/images/rooftop-illustration.webp` is generated concept artwork, not a screenshot of the interactive scene. No awards, clients or usage metrics are invented.
+
+The Rust migration remains in Git history, not the active build. Existing user-owned assets, environment files and local documentation are preserved. Deployment must use the linked `myport` Vercel project with the Next.js build settings in `vercel.json`; older Rust project overrides are not valid for this source tree.
