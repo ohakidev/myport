@@ -31,6 +31,8 @@ No Rust toolchain or WASM build is required. Vercel is configured for Next.js; d
 - `src/app/work/work.css`: case-study layout.
 - `src/lib/case-studies.ts`: shared case-study copy and historical source references.
 - `src/components/architecture-inspector.tsx`: reusable four-layer inspector.
+- `src/components/dave-animations.tsx`: 4-column split intro curtain, 5-bar horizontal/vertical page wipe, velocity-grid pixel distortion canvas, 5-wave SVG morph + swinging pendulum capability cards, 3D stadium cube + 2D physics ball scoreboard + ticker, curved text + 6-string Web Audio guitar, and Gold Mode (twinkling gold snow + flapping butterfly).
+- `src/components/AnimatedContent.tsx`, `Aurora.tsx`, `BlurText.tsx`, `ClickSpark.tsx`, `SpotlightCard.tsx`: React Bits animated primitives mounted across `/` and `/work`.
 - `src/lib/github.ts`: validated public GitHub data, one-hour cache, bounded requests and saved fallback.
 - `src/components/journey.tsx`: playground interface, progress and focus coordination.
 - `src/components/journey/world.tsx`: Three.js runtime.

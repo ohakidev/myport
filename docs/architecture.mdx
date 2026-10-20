@@ -17,19 +17,33 @@ visual only; the heading retains a single accessible name. Unenhanced content
 is visible before GSAP loads.
 
 `atelier-character.tsx` owns its original SVG, pointer-follow eyes and finite
-greeting timeline. Only GSAP owns animated group transforms. No ambient ticker
-or renderer runs continuously. Offscreen/background greeting work is stopped.
+greeting timeline. Only GSAP owns animated group transforms.
+Offscreen/background greeting work is stopped.
 
 `repository-deck.tsx` owns the horizontal scroll interaction and edge buttons.
 The parent owns filtering. Native overflow remains the fallback; GSAP Draggable
 adds scroll inertia and elastic card rotation. Links remain real links, and the
 region supports arrow keys. Search/filter changes reset the deck to its start.
 
-The parent initializes motion from the operating-system preference and listens
-for changes. An explicit Animations button allows a session-only visitor override.
-All three enhancements use `gsap.context` and revert when disabled or unmounted.
-Observers and DOM listeners are explicitly disconnected. Reduced motion removes
-the choreography and drag physics, not the content or controls.
+`dave-animations.tsx` owns the seven signature interactive stages (`LoadingSequenceOverlay`,
+`PageWipeTransition`, `PixelDistortionStage`, `ServiceWavePendulumStage`,
+`StadiumArenaStage`, `GuitarStringsAndCurveStage`, and `GoldModeOverlay`).
+React Bits primitives (`ClickSpark`, `Aurora`, `BlurText`, `AnimatedContent`,
+`SpotlightCard`) are mounted across `portfolio-home.tsx`, `work-studies.tsx`,
+and `repository-deck.tsx`. The five primitives are all present on `/`;
+`/work` uses four (there is intentionally no decorative Aurora behind case studies).
+
+`use-portfolio-motion.ts` initializes from the OS preference and listens for
+changes. Explicit full/reduced choices persist in localStorage with a session-only
+fallback, synchronizing Index/Work primitives and navigation controls.
+`animation-loop.ts` owns a single RAF per effect, stopping offscreen/background
+work and settling finite spark, pixel and string effects. Visible waves, ball
+physics, Aurora and opt-in Gold Mode animate only while enabled.
+Observers, timers, audio nodes and listeners are released on unmount.
+Reduced motion removes choreography and drag physics, not content or controls.
+Navigation runs the requested directional wipe before routing; modified clicks
+remain native. Guitar sound is off until explicitly enabled. Stadium scores come
+from goal collisions, never from pressing Kick Ball.
 
 ## Documentation boundary
 

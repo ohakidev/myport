@@ -8,8 +8,21 @@ import { PortfolioNav } from "@/components/portfolio-nav";
 import { ArchitectureInspector } from "@/components/architecture-inspector";
 import { AtelierCharacter } from "@/components/atelier-character";
 import { RepositoryDeck } from "@/components/repository-deck";
+import AnimatedContent from "@/components/AnimatedContent";
+import Aurora from "@/components/Aurora";
+import BlurText from "@/components/BlurText";
+import ClickSpark from "@/components/ClickSpark";
+import SpotlightCard from "@/components/SpotlightCard";
+import {
+  GuitarStringsAndCurveStage,
+  LoadingSequenceOverlay,
+  PixelDistortionStage,
+  ServiceWavePendulumStage,
+  StadiumArenaStage,
+} from "@/components/dave-animations";
 import { caseStudies } from "@/lib/case-studies";
 import type { GitHubPortfolio, Project } from "@/lib/github";
+import { usePortfolioMotion } from "@/hooks/use-portfolio-motion";
 
 const filters = ["All repos", "TypeScript", "Web & systems", "Interactive 3D"] as const;
 type Filter = (typeof filters)[number];
@@ -26,20 +39,13 @@ export function PortfolioHome({ portfolio }: { portfolio: GitHubPortfolio }) {
   const [studyIndex, setStudyIndex] = useState(0);
   const [filter, setFilter] = useState<Filter>("All repos");
   const [query, setQuery] = useState("");
-  const [motionEnabled, setMotionEnabled] = useState(false);
+  const [motionEnabled, setMotionEnabled] = usePortfolioMotion();
+  const [replayCount, setReplayCount] = useState(0);
   const hero = useRef<HTMLElement>(null);
   const study = caseStudies[studyIndex];
   const search = query.trim().toLowerCase();
   const projects = useMemo(() => portfolio.projects.filter(project => matchesFilter(project, filter) &&
     [project.name, project.description, project.language ?? "", ...project.topics].join(" ").toLowerCase().includes(search)), [portfolio.projects, filter, search]);
-
-  useEffect(() => {
-    const preference = matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setMotionEnabled(!preference.matches);
-    update();
-    preference.addEventListener("change", update);
-    return () => preference.removeEventListener("change", update);
-  }, []);
 
   useEffect(() => {
     if (!motionEnabled) return;
@@ -61,19 +67,28 @@ export function PortfolioHome({ portfolio }: { portfolio: GitHubPortfolio }) {
 
   return (
     <div className="p-shell" data-motion={motionEnabled ? "full" : "reduced"}>
+      <ClickSpark sparkColor="#ffd45c" sparkSize={12} sparkRadius={22} sparkCount={10} duration={460}>
       <a className="p-skip" href="#portfolio-content">Skip to content</a>
       <PortfolioNav current="home" />
       <main id="portfolio-content" className="home-frame">
         <section className="home-hero" ref={hero} aria-labelledby="portfolio-title">
-          <p className="home-intro p-mono" data-intro>Ohaki / Web developer & creative technologist</p>
+          <div className="home-aurora-bg" data-testid="hero-aurora" aria-hidden="true">
+            <Aurora colorStops={["#2944eb", "#ffd45c", "#5cf2ff"]} amplitude={1.15} blend={0.55} speed={1.1} />
+          </div>
+          <div className="home-intro-bar" data-intro>
+            <p className="home-intro p-mono">Ohaki / Web developer & creative technologist</p>
+            <LoadingSequenceOverlay motionEnabled={motionEnabled} replayCount={replayCount} onReplay={() => setReplayCount(c => c + 1)} />
+          </div>
           <h1 id="portfolio-title" aria-label="Code with character.">{["CODE WITH", "CHARACTER."].map(line => <span className="home-title-line" aria-hidden="true" key={line}>{Array.from(line).map((char, index) => <span className="home-title-mask" key={index}><span data-char>{char === " " ? "\u00a0" : char}</span></span>)}</span>)}</h1>
           <div className="home-hero-bottom">
             <div className="home-hero-copy" data-intro>
-              <p>Thoughtful interfaces. Playful interactions. Real systems behind every pixel.</p>
+              <div data-testid="blur-text-tagline">
+                <BlurText text="Thoughtful interfaces. Playful interactions. Real systems behind every pixel." delay={55} animateBy="words" direction="bottom" className="home-blur-lead" />
+              </div>
               <div className="p-actions">
                 <Button asChild className="p-btn p-btn-primary"><a href="#spotlight">Selected work <ArrowRight size={20} aria-hidden="true" /></a></Button>
                 <Link className="p-link" href="/work">Read the case studies <ArrowUpRight size={16} aria-hidden="true" /></Link>
-                <Button variant="ghost" className="home-motion-toggle p-mono" aria-label="Animations" aria-pressed={motionEnabled} onClick={() => setMotionEnabled(enabled => !enabled)}>Animations: {motionEnabled ? "on" : "reduced"}<span aria-hidden="true">{motionEnabled ? "−" : "+"}</span></Button>
+                <Button variant="ghost" className="home-motion-toggle p-mono" aria-label="Animations" aria-pressed={motionEnabled} onClick={() => setMotionEnabled(!motionEnabled)}>Animations: {motionEnabled ? "on" : "reduced"}<span aria-hidden="true">{motionEnabled ? "−" : "+"}</span></Button>
               </div>
             </div>
             <AtelierCharacter motionEnabled={motionEnabled} />
@@ -88,12 +103,14 @@ export function PortfolioHome({ portfolio }: { portfolio: GitHubPortfolio }) {
         </div>
 
         <section id="spotlight" className="p-section" aria-labelledby="spotlight-title">
-          <header><h2 id="spotlight-title">GOOD IDEAS.<br />WORKING CODE.</h2><p>From a world you can walk through to a workflow you can rely on. Pick a project. Look under the hood.</p></header>
+          <AnimatedContent distance={36} duration={0.65} threshold={0.15}>
+            <header><h2 id="spotlight-title">GOOD IDEAS.<br />WORKING CODE.</h2><p>From a world you can walk through to a workflow you can rely on. Pick a project. Look under the hood.</p></header>
+          </AnimatedContent>
           <div className="p-filters home-study-filters" role="group" aria-label="Select a featured project">
             {caseStudies.map((item, index) => <Button variant="ghost" className="p-btn p-filter" key={item.id} aria-pressed={studyIndex === index} data-testid={`flagship-tab-${item.id}`} onClick={() => setStudyIndex(index)}>{item.name}</Button>)}
           </div>
           <div className="home-study">
-            <div className="home-study-copy p-enter" key={`${study.id}-copy`}>
+            <SpotlightCard spotlightColor="rgba(255, 212, 92, 0.2)" className="home-study-copy p-enter" key={`${study.id}-copy`}>
               <span className="p-mono">{study.category}</span>
               <h3>{study.title}</h3>
               <p>{study.summary}</p>
@@ -101,13 +118,20 @@ export function PortfolioHome({ portfolio }: { portfolio: GitHubPortfolio }) {
               <Button asChild className="p-btn"><Link href={`/work#${study.id === "myport" ? "myport" : "activity"}`}>Read case study <ArrowRight size={16} aria-hidden="true" /></Link></Button>
               <a className="p-link" href={study.source} target="_blank" rel="noopener noreferrer"><GithubLogo size={17} aria-hidden="true" /> Open repository</a>
               <details className="home-snapshot"><summary>About this source snapshot</summary><p><a href={`${study.source}/commit/${study.commit}`} target="_blank" rel="noopener noreferrer">{study.commit.slice(0, 7)}</a>. {study.sourceNote}</p></details>
+            </SpotlightCard>
+            <div className="home-study-right">
+              <PixelDistortionStage study={study} motionEnabled={motionEnabled} />
+              <ArchitectureInspector key={study.id} study={study} />
             </div>
-            <ArchitectureInspector key={study.id} study={study} />
           </div>
         </section>
 
+        <ServiceWavePendulumStage motionEnabled={motionEnabled} />
+
         <section id="archive" className="p-section" aria-labelledby="archive-title">
-          <header><h2 id="archive-title">THE OPEN<br />SOURCE SIDE.</h2><p>Experiments, applications and ongoing work. Search the public repository index.</p></header>
+          <AnimatedContent distance={32} duration={0.6} threshold={0.15}>
+            <header><h2 id="archive-title">THE OPEN<br />SOURCE SIDE.</h2><p>Experiments, applications and ongoing work. Search the public repository index.</p></header>
+          </AnimatedContent>
           <div className="home-repo-tools">
             <div className="p-filters" role="group" aria-label="Filter repositories">{filters.map(item => <Button variant="ghost" className="p-btn p-filter" key={item} aria-pressed={filter === item} onClick={() => setFilter(item)}>{item}</Button>)}</div>
             <label className="home-search"><span className="p-mono">Search repositories</span><span><MagnifyingGlass size={18} aria-hidden="true" /><input type="search" data-testid="repo-search-input" value={query} onChange={event => setQuery(event.target.value)} placeholder="Name, language, topic..." /></span></label>
@@ -124,10 +148,15 @@ export function PortfolioHome({ portfolio }: { portfolio: GitHubPortfolio }) {
             <details><summary>Systems you can inspect.</summary><p>Typed data, explicit states and source-backed decisions. Explore the architecture in each case study.</p></details>
             <details><summary>A little room for play.</summary><p>The rooftop is an optional Three.js experiment. You can always read the work without loading a 3D world.</p></details>
           </div>
+          <div className="home-about-span">
+            <StadiumArenaStage motionEnabled={motionEnabled} />
+            <GuitarStringsAndCurveStage motionEnabled={motionEnabled} />
+          </div>
           <a className="home-contact" href={portfolio.profileUrl} target="_blank" rel="noopener noreferrer"><span>Find me on GitHub<strong>LET'S CONNECT.</strong><span>@{portfolio.login}</span></span><ArrowUpRight size={64} weight="bold" aria-hidden="true" /></a>
         </section>
       </main>
       <footer className="p-footer"><span>ohaki / Built with care, shared in public.</span><div><Link href="/work">Work</Link><Link href="/play" prefetch={false}>Playground</Link><a href="#portfolio-content">Back to top ↑</a></div></footer>
+      </ClickSpark>
     </div>
   );
 }

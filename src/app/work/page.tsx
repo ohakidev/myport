@@ -4,6 +4,7 @@ import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import { PortfolioNav } from "@/components/portfolio-nav";
 import { WorkStudies } from "@/components/work-studies";
 import "./work.css";
+import "../portfolio.css";
 
 export const metadata: Metadata = {
   title: "Work | ohakidev",

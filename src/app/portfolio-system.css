@@ -23,6 +23,17 @@ html[data-portfolio-theme="dark"] {
   --p-border: #566298;
   color-scheme: dark;
 }
+html[data-gold-mode="true"] {
+  --p-bg: #120f07;
+  --p-surface: #1e180a;
+  --p-soft: #2c230f;
+  --p-ink: #fff8e7;
+  --p-muted: #f3d78b;
+  --p-accent: #ffd45c;
+  --p-on-accent: #120f07;
+  --p-border: #8a6d1f;
+  --p-art-bg: #fff3cf;
+}
 /* Reading routes scroll normally; the immersive route keeps its viewport canvas. */
 html:has(.p-shell), body:has(.p-shell) { height: auto !important; min-height: 100%; overflow-x: clip !important; overflow-y: auto !important; background: var(--p-bg) !important; color: var(--p-ink) !important; }
 /* The document owns scrolling so the navigation can remain sticky. */
@@ -42,6 +53,14 @@ body:has(.p-shell) { overflow: visible !important; }
 .p-skip { position: fixed; left: 24px; top: -120px; z-index: 100; padding: 16px; background: var(--p-accent); color: var(--p-on-accent) !important; }
 .p-skip:focus { top: 16px; }
 .p-topbar { position: sticky; top: 0; z-index: 20; display: flex; justify-content: space-between; align-items: center; gap: 24px; min-height: 72px; padding: 0 28px; border: 1px solid var(--p-border); background: var(--p-bg); }
+.p-topbar-actions { display: flex; align-items: center; gap: 8px; }
+.dave-gold-btn[aria-pressed="true"] { background: #ffd45c !important; border-color: #ffd45c !important; color: #120f07 !important; }
+.click-spark-root { position: relative; display: block; width: 100%; }
+.click-spark-canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 65; pointer-events: none; }
+.spotlight-card { position: relative; overflow: hidden; --spotlight-x: 50%; --spotlight-y: 50%; --spotlight-color: rgba(255, 255, 255, 0.22); }
+.spotlight-card__glow { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 240ms var(--p-ease); background: radial-gradient(420px circle at var(--spotlight-x) var(--spotlight-y), var(--spotlight-color), transparent 70%); z-index: 0; }
+.spotlight-card:hover .spotlight-card__glow, .spotlight-card:focus-within .spotlight-card__glow { opacity: 1; }
+.spotlight-card > *:not(.spotlight-card__glow) { position: relative; z-index: 1; }
 .p-wordmark { display: flex; gap: 14px; align-items: baseline; font-size: 27px; font-weight: 700; letter-spacing: -.065em; }
 .p-wordmark span { color: var(--p-muted); font-size: 11px; font-weight: 400; letter-spacing: 0; }
 .p-topbar nav { display: flex; align-items: center; gap: 26px; }

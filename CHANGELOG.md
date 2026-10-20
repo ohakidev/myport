@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Mounted all five React Bits animated components on `/`, with four on `/work` (no decorative Aurora behind case studies).
+- Fixed shared OS/explicit motion preferences, viewport-sized click sparks, Work-route effect styles, alternating navigation wipes, ticker scrubbing, keyboard string controls, opt-in sound, goal-only scoring and offscreen/background animation cleanup.
+- Added `src/components/dave-animations.tsx` with seven interactive signature stages inspired by `daveholloway.uk`: 4-column `LoadingSequenceOverlay`, 5-bar horizontal/vertical `PageWipeTransition`, velocity-grid `PixelDistortionStage`, 5-wave `ServiceWavePendulumStage` with swinging connector-hole cards, 3D/2D `StadiumArenaStage` (tilted stadium cube, physics ball with scoreboard & gravity flip, draggable ticker), `GuitarStringsAndCurveStage` (curved SVG text path + 6 elastic strings with Web Audio synth), and `GoldModeOverlay` (Gold Mode palette, twinkling `#gold-snow-canvas`, and pointer-following flapping butterfly).
 - Added masked-character hero choreography, an original pointer-aware SVG companion with a replayable greeting, and a draggable repository deck with inertia and elastic response.
 - Added an explicit animation preference control, defaulting to the operating-system setting, with native scrolling and keyboard fallbacks.
 - Added a separate Blume developer handbook and corrected historical runtime documentation.

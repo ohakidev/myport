@@ -6,6 +6,8 @@ description: Completed work, open verification and dated release evidence.
 ## Completed
 
 - Next.js reading routes `/` and `/work`; optional Three.js playground `/play`.
+- All 5 React Bits animated components (`ClickSpark`, `Aurora`, `BlurText`, `AnimatedContent`, `SpotlightCard`) mounted and active on `/` and `/work`.
+- All 7 signature `daveholloway.uk`-inspired interactive animation systems in `src/components/dave-animations.tsx` (`LoadingSequenceOverlay`, `PageWipeTransition`, `PixelDistortionStage`, `ServiceWavePendulumStage`, `StadiumArenaStage`, `GuitarStringsAndCurveStage`, `GoldModeOverlay`).
 - Cobalt editorial layout, shared theme/navigation, project inspector and repository search.
 - Character-masked GSAP hero sequence, original interactive SVG companion,
   horizontal repository deck with Draggable/InertiaPlugin and elastic card response.
@@ -25,7 +27,18 @@ description: Completed work, open verification and dated release evidence.
 - No current access blocker. Safari/iOS and physical-device acceptance are not proven.
 - No claim of Awwwards recognition or copied reference artwork/source.
 
-## Last verified evidence — 2026-10-20
+## Last verified evidence — 2026-10-21
+
+- Local production verification (`next build` + `next start -p 3199`, Next.js 15.5.24, 7/7 static pages; `/` 157 kB, `/work` 146 kB, `/play` 184 kB First Load JS) passed with 0 TypeScript/ESLint/build errors.
+- Shared animation loop (`src/lib/animation-loop.ts`) and reactive motion preference hook (`src/hooks/use-portfolio-motion.ts`) verified via Node harness and real browser (`$ego-browser`): single RAF loop stops when hidden or when reduced motion is active, and persists `ohaki-portfolio-motion` across reloads.
+- All 5 React Bits components (`ClickSpark`, `Aurora`, `BlurText`, `AnimatedContent`, `SpotlightCard`) and all 7 signature interactive systems (`LoadingSequenceOverlay`, `PageWipeTransition`, `PixelDistortionStage`, `ServiceWavePendulumStage`, `StadiumArenaStage`, `GuitarStringsAndCurveStage`, `GoldModeOverlay`) verified via pointer and keyboard flows:
+  - Intro curtain replay (`data-runs="2"`), curtain wipe trigger (`wipeCount` 1 to 2), and internal route wipe via `router.push` (`/` and `/work`) in full vs reduced motion.
+  - Spotlight pointer CSS variables (`--spotlight-x`/`--spotlight-y`), pixel displacement burst (`Bursts` counter increment), pendulum swing trigger + keyboard `Enter` (`data-swing-count="2"`).
+  - Stadium cube explode (`data-exploded="true"`), kick physics increment (`Kicks: 1` while score remains unchanged), gravity toggle (`aria-pressed="true"`), and awards ticker keyboard `ArrowRight`.
+  - Guitar string `E2` (82.41 Hz) keyboard pluck, full chord strum (`strumCount` 7 to 13) with opt-in Web Audio synthesis (`Sound: off` and `Sound: on`), and Gold Mode (`data-gold-mode="true"`, butterfly cursor follow, snow canvas cleanup on exit).
+- Responsive and runtime gates passed across `320px`, `390px`, `768px`, and `1440px` on `/` and `/work` (`scrollWidth <= clientWidth`), repository search (`0 of` -> reset) and deck keyboard navigation (`scrollLeft > 0`), with 0 console errors and 0 failed network requests.
+
+## Previous verified evidence — 2026-10-20
 
 - Production: `dpl_E9qDoS6LHfJWVeSVrnLusZnvDkcY`, Next.js READY.
 - Vercel alias API confirms [myport-five-kappa.vercel.app](https://myport-five-kappa.vercel.app/)

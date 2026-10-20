@@ -1,3 +1,5 @@
+ "use client";
+
 import React, { useRef } from 'react';
 
 interface SpotlightCardProps extends React.PropsWithChildren {
@@ -24,6 +26,7 @@ const SpotlightCard: React.FC<SpotlightCardProps> = ({
     <div
       ref={divRef}
       onMouseMove={handleMouseMove}
+      data-spotlight-card="true"
       className={`spotlight-card ${className}`}
       style={{ '--spotlight-color': spotlightColor } as React.CSSProperties}
     >

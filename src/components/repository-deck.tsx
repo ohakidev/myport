@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
+import SpotlightCard from "@/components/SpotlightCard";
 import type { Project } from "@/lib/github";
 
 export function RepositoryDeck({ projects, motionEnabled }: { projects: Project[]; motionEnabled: boolean }) {
@@ -63,12 +64,12 @@ export function RepositoryDeck({ projects, motionEnabled }: { projects: Project[
     </div></div>
     <div className="home-deck-viewport" ref={viewport} role="region" aria-label="Repository cards" aria-describedby="repo-deck-help" tabIndex={0} onKeyDown={event => { if (event.target === event.currentTarget && ["ArrowLeft", "ArrowRight"].includes(event.key)) { event.preventDefault(); step(event.key === "ArrowRight" ? 1 : -1); } }}>
       <ul className="home-repo-grid">
-        {projects.map((project, index) => <li key={project.url}><a className="home-repo" href={project.url} target="_blank" rel="noopener noreferrer" onFocus={event => { if (event.currentTarget.matches(":focus-visible")) event.currentTarget.scrollIntoView({ block: "nearest", inline: "nearest" }); }}>
+        {projects.map((project, index) => <li key={project.url}><SpotlightCard spotlightColor="rgba(250, 249, 244, 0.2)" className="home-repo-spotlight"><a className="home-repo" href={project.url} target="_blank" rel="noopener noreferrer" onFocus={event => { if (event.currentTarget.matches(":focus-visible")) event.currentTarget.scrollIntoView({ block: "nearest", inline: "nearest" }); }}>
           <span className="home-repo-number p-mono">{(index + 1).toString().padStart(2, "0")} / PUBLIC SOURCE</span>
           <div><h3>{project.name}</h3><ArrowUpRight size={20} aria-hidden="true" /></div>
           <p>{project.description?.replace(/\s*[—–]\s*/g, ", ") || "Explore the source and development history on GitHub."}</p>
           <div className="p-mono"><span>{project.language ?? "Repository"}</span><span>Updated <time dateTime={project.pushedAt}>{new Date(project.pushedAt).getUTCFullYear()}</time></span></div>
-        </a></li>)}
+        </a></SpotlightCard></li>)}
       </ul>
     </div>
   </div>;

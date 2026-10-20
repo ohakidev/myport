@@ -1,4 +1,8 @@
+ "use client";
+
 import React, { useRef, useEffect, useCallback } from 'react';
+import { usePortfolioMotion } from '@/hooks/use-portfolio-motion';
+import { createAnimationLoop } from '@/lib/animation-loop';
 
 interface ClickSparkProps {
   sparkColor?: string;
@@ -30,11 +34,10 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sparksRef = useRef<Spark[]>([]);
-  const startTimeRef = useRef<number | null>(null);
-  const reduceMotionRef = useRef(false);
+  const [motionEnabled] = usePortfolioMotion();
+  const loopRef = useRef<ReturnType<typeof createAnimationLoop> | null>(null);
 
   useEffect(() => {
-    reduceMotionRef.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -44,7 +47,7 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
     let resizeTimeout: ReturnType<typeof setTimeout>;
 
     const resizeCanvas = () => {
-      const { width, height } = parent.getBoundingClientRect();
+      const { width, height } = canvas.getBoundingClientRect();
       if (canvas.width !== width || canvas.height !== height) {
         canvas.width = width;
         canvas.height = height;
@@ -57,7 +60,7 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
     };
 
     const ro = new ResizeObserver(handleResize);
-    ro.observe(parent);
+    ro.observe(canvas);
 
     resizeCanvas();
 
@@ -89,12 +92,8 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let animationId: number;
-
     const draw = (timestamp: number) => {
-      if (!startTimeRef.current) {
-        startTimeRef.current = timestamp;
-      }
+      if (!motionEnabled) sparksRef.current = [];
       ctx?.clearRect(0, 0, canvas.width, canvas.height);
 
       sparksRef.current = sparksRef.current.filter((spark: Spark) => {
@@ -124,18 +123,20 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
         return true;
       });
 
-      animationId = requestAnimationFrame(draw);
+      return sparksRef.current.length > 0;
     };
 
-    animationId = requestAnimationFrame(draw);
+    const loop = createAnimationLoop(canvas, draw, motionEnabled);
+    loopRef.current = loop;
 
     return () => {
-      cancelAnimationFrame(animationId);
+      loop.dispose();
+      loopRef.current = null;
     };
-  }, [sparkColor, sparkSize, sparkRadius, sparkCount, duration, easeFunc, extraScale]);
+  }, [sparkColor, sparkSize, sparkRadius, sparkCount, duration, easeFunc, extraScale, motionEnabled]);
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>): void => {
-    if (reduceMotionRef.current) return;
+    if (!motionEnabled) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -151,11 +152,12 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
     }));
 
     sparksRef.current.push(...newSparks);
+    loopRef.current?.start();
   };
 
   return (
-    <div className="relative w-full h-full" onClick={handleClick}>
-      <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
+    <div className="click-spark-root relative w-full h-full" data-testid="click-spark-surface" onClick={handleClick}>
+      <canvas ref={canvasRef} data-testid="click-spark-canvas" className="click-spark-canvas pointer-events-none" />
       {children}
     </div>
   );

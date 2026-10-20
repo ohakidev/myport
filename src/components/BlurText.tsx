@@ -1,5 +1,8 @@
+ "use client";
+
 import { motion, type Transition, type Easing } from 'motion/react';
 import { useEffect, useState, useMemo } from 'react';
+import { usePortfolioMotion } from '@/hooks/use-portfolio-motion';
 
 type BlurTextProps = {
   text?: string;
@@ -45,6 +48,7 @@ const BlurText: React.FC<BlurTextProps> = ({
 }) => {
   const elements = animateBy === 'words' ? text.split(' ') : text.split('');
   const [inView, setInView] = useState(false);
+  const [motionEnabled] = usePortfolioMotion();
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setInView(true));
@@ -90,9 +94,9 @@ const BlurText: React.FC<BlurTextProps> = ({
         return (
           <motion.span
             key={index}
-            initial={fromSnapshot}
-            animate={inView ? animateKeyframes : fromSnapshot}
-            transition={spanTransition}
+            initial={false}
+            animate={!motionEnabled ? { filter: 'blur(0px)', opacity: 1, y: 0 } : inView ? animateKeyframes : fromSnapshot}
+            transition={motionEnabled ? spanTransition : { duration: 0 }}
             onAnimationComplete={index === elements.length - 1 ? onAnimationComplete : undefined}
             style={{
               display: 'inline-block',

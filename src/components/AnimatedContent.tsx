@@ -1,6 +1,9 @@
+ "use client";
+
 import React, { useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { usePortfolioMotion } from '@/hooks/use-portfolio-motion';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -46,12 +49,13 @@ const AnimatedContent: React.FC<AnimatedContentProps> = ({
   ...props
 }) => {
   const ref = useRef<HTMLDivElement>(null);
+  const [motionEnabled] = usePortfolioMotion();
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (!motionEnabled) {
       gsap.set(el, { x: 0, y: 0, scale: 1, opacity: 1, visibility: 'visible' });
       return;
     }
@@ -111,8 +115,11 @@ const AnimatedContent: React.FC<AnimatedContentProps> = ({
     return () => {
       st.kill();
       tl.kill();
+      gsap.killTweensOf(el);
+      gsap.set(el, { clearProps: 'transform,opacity,visibility' });
     };
   }, [
+    motionEnabled,
     container,
     distance,
     direction,
@@ -132,7 +139,7 @@ const AnimatedContent: React.FC<AnimatedContentProps> = ({
   ]);
 
   return (
-    <div ref={ref} className={`invisible ${className}`} {...props}>
+    <div ref={ref} data-animated-content="true" className={`${className}`} {...props}>
       {children}
     </div>
   );
