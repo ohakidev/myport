@@ -12,6 +12,10 @@ export function hashForWorkFilter(filter: string) {
   return "";
 }
 
+export function workHrefForProject(name: string) {
+  return `/work${hashForWorkFilter(name)}`;
+}
+
 /** Runs while the work HTML is parsed, before the first paint. */
 export const workFilterBootScript = `(() => {
   const workFilterFromHash = ${workFilterFromHash.toString()};

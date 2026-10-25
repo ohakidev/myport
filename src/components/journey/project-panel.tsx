@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-media-query";
 import type { Project } from "@/lib/github";
+import { workHrefForProject } from "@/lib/work-filter";
 import { storyFor } from "./story";
 
 type ProjectPanelProps = {
@@ -73,7 +74,7 @@ export function ProjectPanel({ project, close, returnFocusRef, onFocusFallback }
               </a>
             </Button>
           )}
-          <a href="/work" className="studio-reader-link game-sheet-link">
+          <a href={workHrefForProject(project.name)} className="studio-reader-link game-sheet-link">
             Engineering case studies <ArrowUpRight size={17} aria-hidden="true" />
           </a>
         </div>
