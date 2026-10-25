@@ -15,6 +15,7 @@ import SpotlightCard from "@/components/SpotlightCard";
 import { InkRule } from "@/components/motion/ink-rule";
 import { MaskedChars } from "@/components/motion/masked-chars";
 import { usePressFeedback } from "@/components/motion/use-press-feedback";
+import { usePointerTilt } from "@/components/motion/use-pointer-tilt";
 import {
   GuitarStringsAndCurveStage,
   LoadingSequenceOverlay,
@@ -55,6 +56,7 @@ export function PortfolioHome({ portfolio }: { portfolio: GitHubPortfolio }) {
   const projects = useMemo(() => portfolio.projects.filter(project => matchesFilter(project, filter) &&
     [project.name, project.description, project.language ?? "", ...project.topics].join(" ").toLowerCase().includes(search)), [portfolio.projects, filter, search]);
   usePressFeedback(frame, motionEnabled);
+  usePointerTilt(studyPanel, motionEnabled, ".home-study-copy", studyIndex);
 
   useGSAP(() => {
     const mm = whenMotion(motionEnabled, () => {

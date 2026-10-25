@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import SpotlightCard from "@/components/SpotlightCard";
+import { usePointerTilt } from "@/components/motion/use-pointer-tilt";
 import type { Project } from "@/lib/github";
 
 export function RepositoryDeck({ projects, motionEnabled }: { projects: Project[]; motionEnabled: boolean }) {
   const viewport = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ start: true, end: false });
+  usePointerTilt(viewport, motionEnabled, ".home-repo-spotlight", projects);
 
   useEffect(() => {
     const element = viewport.current;
