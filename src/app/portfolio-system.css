@@ -109,6 +109,7 @@ body:has(.p-shell) { overflow: visible !important; }
 .p-layer-detail .p-link { margin-top: 12px; color: var(--p-accent); }
 .p-layer-detail code { color: var(--p-accent); }
 @media (prefers-reduced-motion: no-preference) {
+  .ink-rule-signature { transform: scaleX(0); transform-origin: left center; }
   html:has(.p-shell) { scroll-behavior: smooth; }
   .p-btn:not([data-press]), .p-link svg { transition: transform 180ms var(--p-ease), opacity 180ms var(--p-ease); }
   .p-link:hover svg { transform: translate(2px, -2px); }

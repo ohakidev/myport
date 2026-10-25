@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "start:prod": "next start"
+    "start:prod": "next start",
+    "test": "node --experimental-strip-types --test src/components/motion/ink-scale.test.ts"
   },
   "dependencies": {
     "@gsap/react": "2.1.2",
