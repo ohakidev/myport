@@ -23,6 +23,7 @@ import { usePressFeedback } from "@/components/motion/use-press-feedback";
 import type { GitHubPortfolio, Project } from "@/lib/github";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { ProjectPanel } from "@/components/journey/project-panel";
+import { allowJournalDismiss, journalStaysForProject } from "@/lib/journal-flow";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { initialGardenState, sendGardenCommand, storyFor, type GardenState, type StoryBeat } from "@/components/journey/story";
@@ -480,12 +481,22 @@ export function Journey({ portfolio }: { portfolio: GitHubPortfolio }) {
       focusWorld();
     });
   }, [focusWorld]);
+  const holdJournal = useRef(false);
   const openProject = useCallback((project: Project, trigger?: HTMLElement | null) => {
     projectReturnFocusRef.current = trigger ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
-    setJournal(false);
+    holdJournal.current = journal;
+    setJournal(journalStaysForProject(journal));
     setSelected(project);
+  }, [journal]);
+  const closeProject = useCallback(() => {
+    holdJournal.current = false;
+    setSelected(null);
   }, []);
-  const closeProject = useCallback(() => setSelected(null), []);
+  const onJournalOpenChange = (next: boolean) => {
+    const projectSheetPresent = Boolean(document.querySelector(".game-project-sheet"));
+    if (!next && !allowJournalDismiss(projectSheetPresent || holdJournal.current)) return;
+    setJournal(next);
+  };
   const nextIndex = projects.findIndex((project) => !state.completed.includes(project.name));
   const activeIndex = state.active >= 0 ? state.active : state.nearby;
   const current = projects[activeIndex];
@@ -596,7 +607,7 @@ export function Journey({ portfolio }: { portfolio: GitHubPortfolio }) {
         open={journal}
         ready={ready && !failed}
         triggerRef={journalTriggerRef}
-        onOpenChange={setJournal}
+        onOpenChange={onJournalOpenChange}
         onPlay={tour}
         onOpenProject={openProject}
       />
