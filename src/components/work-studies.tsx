@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { ArrowUpRight } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { ArchitectureInspector } from "@/components/architecture-inspector";
@@ -11,6 +11,7 @@ import { usePressFeedback } from "@/components/motion/use-press-feedback";
 import { usePointerTilt } from "@/components/motion/use-pointer-tilt";
 import { PixelDistortionStage } from "@/components/dave-animations";
 import { caseStudies } from "@/lib/case-studies";
+import { hashForWorkFilter, workFilterFromHash } from "@/lib/work-filter";
 import { usePortfolioMotion } from "@/hooks/use-portfolio-motion";
 import { gsap, useGSAP, whenMotion } from "@/lib/gsap";
 
@@ -18,6 +19,21 @@ export function WorkStudies() {
   const root = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState("all");
   const [motionEnabled] = usePortfolioMotion();
+
+  useLayoutEffect(() => {
+    const apply = () => setFilter(workFilterFromHash(window.location.hash));
+    apply();
+    window.addEventListener("hashchange", apply);
+    return () => window.removeEventListener("hashchange", apply);
+  }, []);
+
+  const choose = (next: string) => {
+    setFilter(next);
+    const hash = hashForWorkFilter(next);
+    const nextUrl = `${window.location.pathname}${window.location.search}${hash}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (currentUrl !== nextUrl) window.history.replaceState(null, "", nextUrl);
+  };
   const studies = caseStudies.filter(study => filter === "all" || study.id === filter);
   usePressFeedback(root, motionEnabled);
   usePointerTilt(root, motionEnabled, ".work-decision", filter);
@@ -57,8 +73,8 @@ export function WorkStudies() {
     <ClickSpark sparkColor="#ffd45c" sparkSize={11} sparkRadius={20} sparkCount={8} duration={420}>
     <div id="work-content" ref={root}>
       <div className="work-filters p-filters" role="group" aria-label="Filter case studies">
-        <Button className="p-btn p-filter" data-press data-work-filter variant="ghost" aria-pressed={filter === "all"} onClick={() => setFilter("all")}>All case studies</Button>
-        {caseStudies.map(study => <Button key={study.id} className="p-btn p-filter" data-press data-work-filter variant="ghost" aria-pressed={filter === study.id} onClick={() => setFilter(study.id)}>{study.name}</Button>)}
+        <Button className="p-btn p-filter" data-press data-work-filter variant="ghost" aria-pressed={filter === "all"} onClick={() => choose("all")}>All case studies</Button>
+        {caseStudies.map(study => <Button key={study.id} className="p-btn p-filter" data-press data-work-filter variant="ghost" aria-pressed={filter === study.id} onClick={() => choose(study.id)}>{study.name}</Button>)}
       </div>
       {studies.map(study => (
         <section className="p-section work-case" data-case id={study.id === "myport" ? "myport" : "activity"} key={study.id} aria-labelledby={`${study.id}-title`}>
