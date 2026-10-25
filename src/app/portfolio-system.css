@@ -65,7 +65,10 @@ body:has(.p-shell) { overflow: visible !important; }
 .p-wordmark span { color: var(--p-muted); font-size: 11px; font-weight: 400; letter-spacing: 0; }
 .p-topbar nav { display: flex; align-items: center; gap: 26px; }
 .p-topbar nav a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-size: 12px; font-weight: 650; text-transform: uppercase; white-space: nowrap; }
-.p-topbar nav a:hover, .p-topbar nav a[aria-current] { text-decoration: underline; text-underline-offset: 6px; text-decoration-color: var(--p-accent); }
+.p-topbar nav a { text-decoration: none; }
+[data-nav-link] { position: relative; }
+.nav-line { position: absolute; left: 0; right: 0; bottom: 8px; height: 2px; background: var(--p-accent); transform: scaleX(0); transform-origin: left center; pointer-events: none; }
+[data-nav-link][aria-current="page"] .nav-line { transform: scaleX(1); }
 .p-shell .p-btn { display: inline-flex; align-items: center; justify-content: center; gap: 12px; height: auto; min-height: 48px; padding: 12px 22px; border: 1px solid var(--p-ink); border-radius: 0; background: transparent; color: var(--p-ink); box-shadow: none; font: 600 13px var(--font-sans), sans-serif; white-space: nowrap; cursor: pointer; }
 .p-shell .p-btn-primary { background: var(--p-accent); border-color: var(--p-accent); color: var(--p-on-accent); }
 .p-shell .p-btn:hover { background: var(--p-soft); color: var(--p-ink); }
@@ -119,7 +122,10 @@ body:has(.p-shell) { overflow: visible !important; }
   .p-enter { animation: p-enter 260ms var(--p-ease) both; }
   @keyframes p-enter { from { opacity: .4; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 }
-@media (prefers-reduced-motion: reduce) { .ink-rule { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .ink-rule { transform: none; }
+  [data-nav-link]:hover .nav-line, [data-nav-link]:focus-visible .nav-line { transform: scaleX(1); }
+}
 @media (max-width: 1023px) { .p-topbar nav { gap: 18px; } .p-wordmark span, .p-theme span { display: none; } }
 @media (max-width: 767px) {
   .p-shell { padding: 6px 8px 0; --p-pad: 20px; }
