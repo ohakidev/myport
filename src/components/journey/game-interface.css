@@ -90,7 +90,9 @@
 }
 
 .game-intro-copy { width: min(530px, 48vw); color: var(--game-ink); }
-.game-intro-copy h1 { max-width: 11ch; margin: 0 0 20px; color: var(--game-ink); font-size: clamp(2.75rem, 5.2vw, 5rem); font-weight: 820; letter-spacing: -.04em; line-height: .96; text-wrap: balance; }
+.game-intro-copy h1 { max-width: 11ch; margin: 0 0 20px; color: var(--game-ink); font-size: clamp(2.75rem, 5.2vw, 5rem); font-weight: 820; letter-spacing: -.04em; line-height: .96; }
+.play-words { display: flex; flex-wrap: wrap; gap: 0.12em 0.28em; max-width: 100%; }
+.game-intro-copy .ink-rule { width: 112px; min-width: 112px; margin: 16px 0 18px; background: var(--game-accent-dark); }
 .game-intro-copy > p { max-width: 37ch; color: #3d463c; font-size: 1rem; line-height: 1.6; }
 .game-entry-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 29px; }
 .game-entry-actions .game-button { min-height: 50px; padding-inline: 18px; }

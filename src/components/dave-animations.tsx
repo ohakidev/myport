@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { gsap } from "gsap";
 import { Sparkle, Play, MusicNotes, SoccerBall, Waves } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import SpotlightCard from "@/components/SpotlightCard";
+import { InkRule } from "@/components/motion/ink-rule";
+import { gsap, useGSAP } from "@/lib/gsap";
 import type { CaseStudy } from "@/lib/case-studies";
 import { createAnimationLoop } from "@/lib/animation-loop";
 
@@ -24,64 +25,38 @@ export function LoadingSequenceOverlay({
   const [phase, setPhase] = useState<"splitting" | "open">("splitting");
   const [runs, setRuns] = useState(1);
 
-  useEffect(() => {
+  useGSAP(() => {
     const root = overlayRef.current;
     if (!root) return;
     setRuns((r) => (replayCount > 0 ? replayCount + 1 : r));
-
     const cols = root.querySelectorAll<HTMLElement>(".dave-loader-col");
     const badge = root.querySelector<HTMLElement>(".dave-loader-badge");
-
-    if (!motionEnabled) {
+    const reduced = !motionEnabled || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
       gsap.set(cols, { yPercent: (i) => (i < 2 ? -100 : 100) });
-      if (badge) gsap.set(badge, { autoAlpha: 0, scale: 0.9 });
+      if (badge) gsap.set(badge, { autoAlpha: 0, scale: 1, y: 0 });
       setPhase("open");
       return;
     }
-
     setPhase("splitting");
-    const tl = gsap.timeline({
-      onComplete: () => setPhase("open"),
-    });
-
-    gsap.set(cols, { yPercent: 0 });
-    if (badge) gsap.set(badge, { autoAlpha: 1, scale: 0.88, y: 12 });
-
-    if (badge) {
-      tl.to(badge, {
-        autoAlpha: 1,
-        scale: 1,
-        y: 0,
-        duration: 0.22,
-        ease: "back.out(1.7)",
-      }).to(
-        badge,
-        {
-          autoAlpha: 0,
-          scale: 1.06,
-          y: -14,
-          duration: 0.2,
-          ease: "power2.in",
-        },
-        "+=0.1"
-      );
-    }
-
-    tl.to(
-      cols,
-      {
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.set(cols, { yPercent: 0 });
+      if (badge) gsap.set(badge, { autoAlpha: 1, scale: 0.92, y: 8 });
+      const tl = gsap.timeline({ onComplete: () => setPhase("open") });
+      if (badge) {
+        tl.to(badge, { autoAlpha: 1, scale: 1, y: 0, duration: 0.22, ease: "power3.out" })
+          .to(badge, { autoAlpha: 0, y: -10, duration: 0.2, ease: "power2.in" }, "+=0.1");
+      }
+      tl.to(cols, {
         yPercent: (i) => (i % 2 === 0 ? -102 : 102),
         duration: 0.52,
         stagger: 0.055,
         ease: "power4.inOut",
-      },
-      badge ? "-=0.08" : 0
-    );
-
-    return () => {
-      tl.kill();
-    };
-  }, [motionEnabled, replayCount]);
+      }, badge ? "-=0.08" : 0);
+    });
+    return () => mm.revert();
+  }, { scope: overlayRef, dependencies: [motionEnabled, replayCount], revertOnUpdate: true });
 
   return (
     <>
@@ -106,6 +81,7 @@ export function LoadingSequenceOverlay({
       <Button
         variant="ghost"
         className="p-btn dave-mini-trigger p-mono"
+        data-press
         data-testid="replay-intro-btn"
         onClick={onReplay}
       >
@@ -134,53 +110,37 @@ export function PageWipeTransition({
   const [wipeState, setWipeState] = useState<"idle" | "wiping">("idle");
   const [completedWipes, setCompletedWipes] = useState(0);
   const completeRef = useRef(onComplete);
+  const firedSeed = useRef(0);
   completeRef.current = onComplete;
 
-  useEffect(() => {
+  useGSAP(() => {
     if (wipeSeed === 0) return;
     const el = wipeRef.current;
     if (!el) return;
-
-    if (!motionEnabled) {
+    const finish = () => {
+      if (firedSeed.current === wipeSeed) return;
+      firedSeed.current = wipeSeed;
       setWipeState("idle");
       setCompletedWipes((c) => c + 1);
       completeRef.current?.();
+    };
+    const reduced = !motionEnabled || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      finish();
       return;
     }
-
-    setWipeState("wiping");
     const rows = el.querySelectorAll<HTMLElement>(".dave-wipe-bar");
     const prop = mode === "horizontal" ? "xPercent" : "yPercent";
-
-    const tl = gsap.timeline({
-      onComplete: () => {
-        setWipeState("idle");
-        setCompletedWipes((c) => c + 1);
-        completeRef.current?.();
-      },
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      setWipeState("wiping");
+      const tl = gsap.timeline({ onComplete: finish });
+      gsap.set(rows, { xPercent: 0, yPercent: 0, [prop]: -102, autoAlpha: 1 });
+      tl.to(rows, { [prop]: 0, duration: 0.3, stagger: 0.04, ease: "power3.out" })
+        .to(rows, { [prop]: 102, duration: 0.32, stagger: 0.04, ease: "power3.in" }, "+=0.05");
     });
-
-    gsap.set(rows, { xPercent: 0, yPercent: 0, [prop]: -102, autoAlpha: 1 });
-    tl.to(rows, {
-      [prop]: 0,
-      duration: 0.3,
-      stagger: 0.04,
-      ease: "power3.out",
-    }).to(
-      rows,
-      {
-        [prop]: 102,
-        duration: 0.32,
-        stagger: 0.04,
-        ease: "power3.in",
-      },
-      "+=0.05"
-    );
-
-    return () => {
-      tl.kill();
-    };
-  }, [wipeSeed, motionEnabled, mode]);
+    return () => mm.revert();
+  }, { scope: wipeRef, dependencies: [wipeSeed, motionEnabled, mode], revertOnUpdate: true });
 
   return (
     <div
@@ -476,8 +436,10 @@ function buildWavePath(phase: number, amplitude: number, yBase: number, freq: nu
 }
 
 export function ServiceWavePendulumStage({ motionEnabled }: { motionEnabled: boolean }) {
+  const sectionRef = useRef<HTMLElement>(null);
   const waveSvgRef = useRef<SVGSVGElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const introDone = useRef(false);
   const anglesRef = useRef<number[]>([0, 0, 0, 0]);
   const velocitiesRef = useRef<number[]>([0, 0, 0, 0]);
   const [swingAngle, setSwingAngle] = useState(0);
@@ -507,7 +469,7 @@ export function ServiceWavePendulumStage({ motionEnabled }: { motionEnabled: boo
         });
       }
 
-      if (scrollerRef.current) {
+      if (scrollerRef.current && (introDone.current || !motionEnabled)) {
         const cards = scrollerRef.current.querySelectorAll<HTMLElement>(".dave-pendulum-card");
         let maxAbs = 0;
         cards.forEach((card, idx) => {
@@ -539,9 +501,39 @@ export function ServiceWavePendulumStage({ motionEnabled }: { motionEnabled: boo
     return () => loop.dispose();
   }, [motionEnabled]);
 
+  useGSAP(() => {
+    introDone.current = !motionEnabled;
+    if (!motionEnabled || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      introDone.current = true;
+      return;
+    }
+    introDone.current = false;
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.timeline({
+        defaults: { ease: "power3.out" },
+        scrollTrigger: { trigger: sectionRef.current, start: "top 75%", once: true },
+        onComplete: () => { introDone.current = true; },
+      })
+        .from(".band-mask > span", { yPercent: 110, duration: 0.55, stagger: 0.08 })
+        .from("[data-ink]", { scaleX: 0, duration: 0.45, ease: "power2.inOut" }, 0.12)
+        .from(".dave-pendulum-card", {
+          rotation: (index: number) => (index % 2 ? 7 : -7),
+          transformOrigin: "50% 14px",
+          duration: 0.7,
+          stagger: 0.06,
+        }, 0.2);
+    });
+    return () => {
+      introDone.current = true;
+      mm.revert();
+    };
+  }, { scope: sectionRef, dependencies: [motionEnabled], revertOnUpdate: true });
+
   return (
     <section
       id="capabilities"
+      ref={sectionRef}
       className="p-section dave-service-section"
       data-testid="service-pendulum-stage"
       data-swing-angle={swingAngle}
@@ -571,8 +563,10 @@ export function ServiceWavePendulumStage({ motionEnabled }: { motionEnabled: boo
         <div>
           <p className="p-mono">CAPABILITIES & PENDULUM RIG // DAVE HOLLOWAY INSPIRED</p>
           <h2 id="capabilities-title">
-            BUILT TO SWING.<br />ENGINEERED TO SHIP.
+            <span className="band-mask"><span>BUILT TO SWING.</span></span>
+            <span className="band-mask"><span>ENGINEERED TO SHIP.</span></span>
           </h2>
+          <InkRule />
           <p>
             Move across the cards or trigger an impulse to explore how motion can make an interface feel tactile.
           </p>
@@ -584,6 +578,7 @@ export function ServiceWavePendulumStage({ motionEnabled }: { motionEnabled: boo
           <Button
             variant="ghost"
             className="p-btn"
+            data-press
             data-testid="swing-cards-btn"
             onClick={() => impulseCards(16)}
           >

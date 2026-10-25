@@ -17,8 +17,10 @@ import {
   Sun,
   X,
 } from "@phosphor-icons/react";
-import BlurText from "@/components/BlurText";
+import { InkRule } from "@/components/motion/ink-rule";
+import { usePressFeedback } from "@/components/motion/use-press-feedback";
 import type { GitHubPortfolio, Project } from "@/lib/github";
+import { gsap, useGSAP } from "@/lib/gsap";
 import { ProjectPanel } from "@/components/journey/project-panel";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -192,16 +194,37 @@ function IntroPanel({
   ready: boolean;
   onEnter: () => void;
 }) {
+  const panel = useRef<HTMLElement>(null);
+  useGSAP(() => {
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      gsap.timeline({ defaults: { ease: "power3.out" } })
+        .from("[data-word]", { yPercent: 110, duration: 0.7, stagger: 0.04 })
+        .from("[data-ink]", { scaleX: 0, duration: 0.48, ease: "power2.inOut" }, 0.28)
+        .from("[data-play-copy]", { x: 20, duration: 0.45 }, 0.4)
+        .from("[data-play-cta]", { x: 14, duration: 0.4 }, 0.5);
+    });
+    return () => mm.revert();
+  }, { scope: panel });
+
   return (
-    <section className="game-intro-panel" aria-label="Start the interactive portfolio expedition">
+    <section className="game-intro-panel" ref={panel} aria-label="Start the interactive portfolio expedition">
       <div className="game-intro-copy">
-        <BlurText as="h1" text="Real work, made walkable." delay={65} stepDuration={0.25} />
-        <p>Explore at your own pace. Your saved story and optional project chapters are ready in the Journal.</p>
-        <div className="game-entry-actions">
+        <h1 aria-label="Real work, made walkable.">
+          <span className="play-words" aria-hidden="true">
+            {["Real", "work,", "made", "walkable."].map(word => (
+              <span className="mask-clip" key={word}><span data-word>{word}</span></span>
+            ))}
+          </span>
+          <InkRule />
+        </h1>
+        <p data-play-copy>Explore at your own pace. Your saved story and optional project chapters are ready in the Journal.</p>
+        <div className="game-entry-actions" data-play-cta>
           <Button
             type="button"
             size="lg"
             className="game-button game-button--primary"
+            data-press
             disabled={!ready}
             onClick={onEnter}
           >
@@ -415,6 +438,7 @@ export function Journey({ portfolio }: { portfolio: GitHubPortfolio }) {
     return () => window.clearTimeout(timeout);
   }, [ready, failed]);
 
+  usePressFeedback(shell, fullEffects);
   const projects = useMemo(() => [...portfolio.projects].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt)), [portfolio.projects]);
   const onState = useCallback((next: GardenState) => setState(next as JourneyState), []);
   const onReady = useCallback(() => { setReady(true); setFailed(false); }, []);

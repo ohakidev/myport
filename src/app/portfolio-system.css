@@ -70,7 +70,16 @@ body:has(.p-shell) { overflow: visible !important; }
 .p-shell .p-btn-primary { background: var(--p-accent); border-color: var(--p-accent); color: var(--p-on-accent); }
 .p-shell .p-btn:hover { background: var(--p-soft); color: var(--p-ink); }
 .p-shell .p-btn-primary:hover { background: var(--p-ink); border-color: var(--p-ink); color: var(--p-bg); }
-.p-shell .p-btn:active { transform: translateY(1px); }
+.p-shell .p-btn:not([data-press]):active { transform: translateY(1px); }
+.ink-rule { display: block; width: min(168px, 32vw); min-width: min(168px, 32vw); height: 3px; margin-top: 16px; background: var(--p-accent); transform: scaleX(1); transform-origin: left center; }
+.ink-rule-end { transform-origin: right center; }
+.ink-rule-hero { width: min(240px, 40vw); min-width: min(240px, 40vw); }
+.mask-line { display: block; white-space: nowrap; }
+.mask-clip { display: inline-block; overflow: clip; vertical-align: top; padding-bottom: .08em; margin-bottom: -.08em; }
+.mask-clip > span { display: inline-block; }
+.band-mask { display: block; overflow: clip; padding-bottom: .08em; margin-bottom: -.08em; }
+.band-mask > span { display: block; }
+.theme-veil { position: fixed; inset: 0; z-index: 80; pointer-events: none; background: var(--p-ink); opacity: 0; }
 .p-shell .p-btn:disabled { opacity: .5; cursor: not-allowed; }
 .p-shell .p-theme { min-width: 44px; min-height: 44px; padding: 10px; }
 .p-theme span { font-size: 11px; }
@@ -101,11 +110,12 @@ body:has(.p-shell) { overflow: visible !important; }
 .p-layer-detail code { color: var(--p-accent); }
 @media (prefers-reduced-motion: no-preference) {
   html:has(.p-shell) { scroll-behavior: smooth; }
-  .p-btn, .p-link svg { transition: transform 180ms var(--p-ease), opacity 180ms var(--p-ease); }
+  .p-btn:not([data-press]), .p-link svg { transition: transform 180ms var(--p-ease), opacity 180ms var(--p-ease); }
   .p-link:hover svg { transform: translate(2px, -2px); }
   .p-enter { animation: p-enter 260ms var(--p-ease) both; }
   @keyframes p-enter { from { opacity: .4; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 }
+@media (prefers-reduced-motion: reduce) { .ink-rule { transform: none; } }
 @media (max-width: 1023px) { .p-topbar nav { gap: 18px; } .p-wordmark span, .p-theme span { display: none; } }
 @media (max-width: 767px) {
   .p-shell { padding: 6px 8px 0; --p-pad: 20px; }
