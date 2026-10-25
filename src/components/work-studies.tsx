@@ -11,7 +11,7 @@ import { usePressFeedback } from "@/components/motion/use-press-feedback";
 import { usePointerTilt } from "@/components/motion/use-pointer-tilt";
 import { PixelDistortionStage } from "@/components/dave-animations";
 import { caseStudies } from "@/lib/case-studies";
-import { hashForWorkFilter, workFilterFromHash } from "@/lib/work-filter";
+import { hashForWorkFilter, workFilterBootScript, workFilterFromHash } from "@/lib/work-filter";
 import { usePortfolioMotion } from "@/hooks/use-portfolio-motion";
 import { gsap, useGSAP, whenMotion } from "@/lib/gsap";
 
@@ -73,11 +73,11 @@ export function WorkStudies() {
     <ClickSpark sparkColor="#ffd45c" sparkSize={11} sparkRadius={20} sparkCount={8} duration={420}>
     <div id="work-content" ref={root}>
       <div className="work-filters p-filters" role="group" aria-label="Filter case studies">
-        <Button className="p-btn p-filter" data-press data-work-filter variant="ghost" aria-pressed={filter === "all"} onClick={() => choose("all")}>All case studies</Button>
-        {caseStudies.map(study => <Button key={study.id} className="p-btn p-filter" data-press data-work-filter variant="ghost" aria-pressed={filter === study.id} onClick={() => choose(study.id)}>{study.name}</Button>)}
+        <Button className="p-btn p-filter" data-press data-work-filter data-filter-id="all" suppressHydrationWarning variant="ghost" aria-pressed={filter === "all"} onClick={() => choose("all")}>All case studies</Button>
+        {caseStudies.map(study => <Button key={study.id} className="p-btn p-filter" data-press data-work-filter data-filter-id={study.id} suppressHydrationWarning variant="ghost" aria-pressed={filter === study.id} onClick={() => choose(study.id)}>{study.name}</Button>)}
       </div>
       {studies.map(study => (
-        <section className="p-section work-case" data-case id={study.id === "myport" ? "myport" : "activity"} key={study.id} aria-labelledby={`${study.id}-title`}>
+        <section className="p-section work-case" data-case suppressHydrationWarning id={study.id === "myport" ? "myport" : "activity"} key={study.id} aria-labelledby={`${study.id}-title`}>
           <header>
             <p className="p-mono work-category">{study.category}</p>
             <h2 id={`${study.id}-title`}><span className="band-mask"><span>{study.title}</span></span></h2>
@@ -100,6 +100,7 @@ export function WorkStudies() {
           </div>
         </section>
       ))}
+      <script dangerouslySetInnerHTML={{ __html: workFilterBootScript }} />
       <section className="p-section work-boundaries" id="method" data-method>
         <h2><span className="band-mask"><span>Evidence, with boundaries.</span></span></h2>
         <InkRule />
