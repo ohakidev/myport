@@ -7,6 +7,7 @@ import { ArrowUpRight, ArrowsLeftRight, Moon, Sparkle, Sun } from "@phosphor-ico
 import { Button } from "@/components/ui/button";
 import { GoldModeOverlay, PageWipeTransition } from "@/components/dave-animations";
 import { RefreshScrollTriggers } from "@/components/motion/refresh-scroll";
+import { useNavIntent } from "@/components/motion/use-nav-intent";
 import { usePressFeedback } from "@/components/motion/use-press-feedback";
 import { usePortfolioMotion } from "@/hooks/use-portfolio-motion";
 import { gsap, useGSAP } from "@/lib/gsap";
@@ -23,6 +24,7 @@ export function PortfolioNav({ current }: { current: "home" | "work" | "play" })
   const veilRef = useRef<HTMLDivElement>(null);
   const themeFlash = useRef(false);
   usePressFeedback(headerRef, motionEnabled);
+  useNavIntent(headerRef, motionEnabled);
   useEffect(() => { setTheme(document.documentElement.dataset.portfolioTheme ?? "light"); }, []);
   useGSAP(() => {
     if (!themeFlash.current) return;
@@ -67,12 +69,12 @@ export function PortfolioNav({ current }: { current: "home" | "work" | "play" })
     <header className="p-topbar" ref={headerRef}>
       <Link className="p-wordmark" href="/" aria-label="Ohaki home">ohaki<span>Independent developer</span></Link>
       <nav aria-label="Portfolio navigation">
-        <Link href="/" aria-current={current === "home" ? "page" : undefined} onClick={event => navigate(event, "horizontal")}>Index</Link>
-        <Link href="/work" aria-current={current === "work" ? "page" : undefined} onClick={event => navigate(event, "horizontal")}>Work</Link>
-        <Link href="/play" prefetch={false} onClick={event => navigate(event, "vertical")}>Playground</Link>
-        <Link href="/#capabilities">Capabilities</Link>
-        <Link href="/#about">About</Link>
-        <a href="https://github.com/ohakidev" target="_blank" rel="noopener noreferrer">GitHub <ArrowUpRight size={14} aria-hidden="true" /></a>
+        <Link href="/" data-nav-link aria-current={current === "home" ? "page" : undefined} onClick={event => navigate(event, "horizontal")}>Index<span className="nav-line" aria-hidden="true" /></Link>
+        <Link href="/work" data-nav-link aria-current={current === "work" ? "page" : undefined} onClick={event => navigate(event, "horizontal")}>Work<span className="nav-line" aria-hidden="true" /></Link>
+        <Link href="/play" data-nav-link prefetch={false} onClick={event => navigate(event, "vertical")}>Playground<span className="nav-line" aria-hidden="true" /></Link>
+        <Link href="/#capabilities" data-nav-link>Capabilities<span className="nav-line" aria-hidden="true" /></Link>
+        <Link href="/#about" data-nav-link>About<span className="nav-line" aria-hidden="true" /></Link>
+        <a href="https://github.com/ohakidev" data-nav-link target="_blank" rel="noopener noreferrer">GitHub <ArrowUpRight size={14} aria-hidden="true" /><span className="nav-line" aria-hidden="true" /></a>
       </nav>
       <div className="p-topbar-actions">
         {current !== "home" && <Button variant="ghost" className="p-btn p-theme" data-press aria-label="Animations" aria-pressed={motionEnabled} onClick={() => setMotionEnabled(!motionEnabled)}><span>Motion: {motionEnabled ? "on" : "reduced"}</span><Sparkle size={16} aria-hidden="true" /></Button>}

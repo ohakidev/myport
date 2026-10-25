@@ -33,7 +33,7 @@ export function RepositoryDeck({ projects, motionEnabled }: { projects: Project[
       const context = gsap.context(() => {
         const cards = element.querySelectorAll(".home-repo");
         const swing = gsap.quickTo(cards, "rotation", { duration: .25, ease: "power2.out" });
-        const settle = () => { gsap.to(cards, { rotation: 0, duration: .9, ease: "elastic.out(1,.35)", overwrite: true }); };
+        const settle = () => { gsap.to(cards, { rotation: 0, duration: 0.45, ease: "power3.out", overwrite: true }); };
         const [drag] = Draggable.create(element, {
           type: "scrollLeft", inertia: true, dragClickables: true, minimumMovement: 8,
           edgeResistance: .85, allowNativeTouchScrolling: true,

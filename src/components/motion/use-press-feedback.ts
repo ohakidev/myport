@@ -1,17 +1,20 @@
 "use client";
 
 import type { RefObject } from "react";
+import { ctaPressScale } from "@/components/motion/press-intent";
 import { gsap, useGSAP } from "@/lib/gsap";
+
+const CTA = ".p-btn-primary[data-press], a.p-link[data-press]";
 
 function pressTarget(root: HTMLElement, event: Event) {
   const node = event.target;
   if (!(node instanceof Element)) return null;
-  const target = node.closest<HTMLElement>("[data-press]");
+  const target = node.closest<HTMLElement>(CTA);
   if (!target || !root.contains(target)) return null;
   return target;
 }
 
-/** Hover lift and press scale for marked controls. Transform only, cleared on reduced motion. */
+/** Hover lift and press-in for primary actions only. Transform only, no overshoot. */
 export function usePressFeedback(scope: RefObject<HTMLElement | null>, motionEnabled: boolean) {
   useGSAP((_context, contextSafe) => {
     const root = scope.current;
@@ -36,12 +39,12 @@ export function usePressFeedback(scope: RefObject<HTMLElement | null>, motionEna
       const down = contextSafe((event: PointerEvent) => {
         const target = pressTarget(root, event);
         if (!target) return;
-        gsap.to(target, { scale: 0.96, duration: 0.1, ease: "power2.out", overwrite: "auto" });
+        gsap.to(target, { y: 1, scale: ctaPressScale(true), duration: 0.09, ease: "power2.out", overwrite: "auto" });
       });
       const up = contextSafe((event: PointerEvent) => {
         const target = pressTarget(root, event);
         if (!target) return;
-        gsap.to(target, { scale: 1, duration: 0.16, ease: "power2.out", overwrite: "auto" });
+        gsap.to(target, { y: -2, scale: ctaPressScale(false), duration: 0.16, ease: "power2.out", overwrite: "auto" });
       });
       root.addEventListener("pointerover", enter);
       root.addEventListener("pointerout", leave);

@@ -18,6 +18,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { InkRule } from "@/components/motion/ink-rule";
+import { useNavIntent } from "@/components/motion/use-nav-intent";
 import { usePressFeedback } from "@/components/motion/use-press-feedback";
 import type { GitHubPortfolio, Project } from "@/lib/github";
 import { gsap, useGSAP } from "@/lib/gsap";
@@ -439,6 +440,7 @@ export function Journey({ portfolio }: { portfolio: GitHubPortfolio }) {
   }, [ready, failed]);
 
   usePressFeedback(shell, fullEffects);
+  useNavIntent(shell, true);
   const projects = useMemo(() => [...portfolio.projects].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt)), [portfolio.projects]);
   const onState = useCallback((next: GardenState) => setState(next as JourneyState), []);
   const onReady = useCallback(() => { setReady(true); setFailed(false); }, []);
@@ -510,7 +512,7 @@ export function Journey({ portfolio }: { portfolio: GitHubPortfolio }) {
         <a href="/" className="game-interface-brand" aria-label="Return to Ohaki home">ohaki</a>
         <small className="game-source-note">{portfolio.isLive ? "Live from GitHub" : "Showing saved data"}</small>
         <nav className="game-interface-nav" aria-label="Expedition navigation">
-          <a href="/work" className="game-work-link">Read the work <ArrowUpRight size={15} aria-hidden="true" /></a>
+          <a href="/work" className="game-work-link" data-nav-link>Read the work <ArrowUpRight size={15} aria-hidden="true" /><span className="nav-line" aria-hidden="true" /></a>
           <Button ref={journalTriggerRef} type="button" variant="ghost" className="game-button game-journal-trigger" aria-label="Open project journal" title="Project journal" onClick={() => setJournal(true)}>
             <BookOpen size={18} aria-hidden="true" /><span>Journal</span>
           </Button>
