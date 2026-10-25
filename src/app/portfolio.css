@@ -36,7 +36,10 @@
 .home-study-copy { padding: 28px; border: 1px solid var(--p-border); background: var(--p-surface); }
 .home-study-right, .work-case-right { display: flex; flex-direction: column; gap: 24px; }
 .home-about-span { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 36px; margin-top: 12px; }
-.home-repo-spotlight { height: 100%; display: block; }
+.home-repo-spotlight { height: 100%; display: block; transform-style: preserve-3d; }
+.home-repo-grid > li { perspective: 900px; }
+.home-study { perspective: 900px; }
+.home-study-copy { transform-style: preserve-3d; }
 
 /* Dave Holloway Signature Animation Stages */
 .dave-mini-trigger { min-height: 36px !important; padding: 6px 14px !important; font-size: 11px !important; gap: 8px !important; }

@@ -8,6 +8,7 @@ import ClickSpark from "@/components/ClickSpark";
 import SpotlightCard from "@/components/SpotlightCard";
 import { InkRule } from "@/components/motion/ink-rule";
 import { usePressFeedback } from "@/components/motion/use-press-feedback";
+import { usePointerTilt } from "@/components/motion/use-pointer-tilt";
 import { PixelDistortionStage } from "@/components/dave-animations";
 import { caseStudies } from "@/lib/case-studies";
 import { usePortfolioMotion } from "@/hooks/use-portfolio-motion";
@@ -19,6 +20,7 @@ export function WorkStudies() {
   const [motionEnabled] = usePortfolioMotion();
   const studies = caseStudies.filter(study => filter === "all" || study.id === filter);
   usePressFeedback(root, motionEnabled);
+  usePointerTilt(root, motionEnabled, ".work-decision", filter);
 
   useGSAP(() => {
     const mm = whenMotion(motionEnabled, () => {

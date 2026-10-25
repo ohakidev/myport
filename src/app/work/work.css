@@ -7,7 +7,8 @@
 .work-case > header { max-width: 900px; }
 .work-case > header h2 { max-width: 22ch; }
 .work-category { margin-bottom: 20px !important; }
-.work-case-grid { display: grid; grid-template-columns: .7fr 1.3fr; gap: 48px; align-items: start; }
+.work-case-grid { display: grid; grid-template-columns: .7fr 1.3fr; gap: 48px; align-items: start; perspective: 900px; }
+.work-decision { transform-style: preserve-3d; }
 .work-decision h3 { font-size: 22px; margin-bottom: 16px; }
 .work-decision > p { font-size: 14px; }
 .work-decision dl { margin: 28px 0; display: grid; gap: 16px; }
