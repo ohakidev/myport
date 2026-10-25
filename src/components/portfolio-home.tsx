@@ -13,6 +13,7 @@ import BlurText from "@/components/BlurText";
 import ClickSpark from "@/components/ClickSpark";
 import SpotlightCard from "@/components/SpotlightCard";
 import { InkRule } from "@/components/motion/ink-rule";
+import { SignatureInk } from "@/components/motion/signature-ink";
 import { MaskedChars } from "@/components/motion/masked-chars";
 import { usePressFeedback } from "@/components/motion/use-press-feedback";
 import { usePointerTilt } from "@/components/motion/use-pointer-tilt";
@@ -199,7 +200,11 @@ export function PortfolioHome({ portfolio }: { portfolio: GitHubPortfolio }) {
         </section>
 
         <section id="about" className="p-section home-about" aria-labelledby="about-title">
-          <div><h2 id="about-title">CURIOUS MIND.<br />HANDS-ON BUILDER.</h2><p>I'm Ohaki. I turn ideas into interfaces, connect them to real data, and make room for a little play.</p></div>
+          <div>
+            <h2 id="about-title">CURIOUS MIND.<br />HANDS-ON BUILDER.</h2>
+            <SignatureInk />
+            <p>I'm Ohaki. I turn ideas into interfaces, connect them to real data, and make room for a little play.</p>
+          </div>
           <div className="home-principles">
             <details open><summary>Interfaces that make sense.</summary><p>Clear hierarchy, useful feedback and keyboard-friendly controls. The next action should feel obvious.</p></details>
             <details><summary>Systems you can inspect.</summary><p>Typed data, explicit states and source-backed decisions. Explore the architecture in each case study.</p></details>
